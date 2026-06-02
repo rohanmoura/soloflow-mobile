@@ -77,12 +77,14 @@ export default function TransactionDetailScreen() {
         <Text style={styles.meta}>{transaction.notes || 'No notes added for this transaction.'}</Text>
       </Card>
 
-      <PrimaryButton
-        label="Edit transaction"
-        icon={Pencil}
-        onPress={() => router.push(`/transaction/edit/${transaction.id}` as Href)}
-      />
-      <PrimaryButton label="Delete transaction" icon={Trash2} tone="dark" onPress={handleDelete} />
+      <View style={styles.actionStack}>
+        <PrimaryButton
+          label="Edit transaction"
+          icon={Pencil}
+          onPress={() => router.push(`/transaction/edit/${transaction.id}` as Href)}
+        />
+        <PrimaryButton label="Delete transaction" icon={Trash2} tone="dark" onPress={handleDelete} />
+      </View>
     </Screen>
   );
 }
@@ -202,5 +204,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     marginTop: spacing.xs,
+  },
+  actionStack: {
+    gap: spacing.md,
   },
 });

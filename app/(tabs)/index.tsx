@@ -1,6 +1,17 @@
 import { Link, type Href } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowDownRight, ArrowUpRight, Clock3, Plus, SlidersHorizontal, TrendingDown, TrendingUp } from 'lucide-react-native';
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Clock3,
+  FilePlus2,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  Target,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Badge } from '@/components/ui/Badge';
@@ -65,11 +76,29 @@ export default function HomeScreen() {
         </View>
       </LinearGradient>
 
-      <View style={styles.searchMock}>
-        <Text style={styles.searchText}>Search income, invoices, clients</Text>
-        <View style={styles.filterDot}>
-          <SlidersHorizontal color={colors.surface} size={16} />
-        </View>
+      <Link href={'/transactions' as Href} asChild>
+        <Pressable style={styles.searchAction}>
+          <Search color={colors.textMuted} size={17} />
+          <Text style={styles.searchText}>Search income, expenses, notes</Text>
+          <View style={styles.filterDot}>
+            <SlidersHorizontal color={colors.surface} size={16} />
+          </View>
+        </Pressable>
+      </Link>
+
+      <View style={styles.quickRail}>
+        <Link href={'/invoice/add' as Href} asChild>
+          <Pressable style={styles.quickButton}>
+            <FilePlus2 color={colors.ink} size={17} />
+            <Text style={styles.quickButtonText}>Add invoice</Text>
+          </Pressable>
+        </Link>
+        <Link href={'/goals' as Href} asChild>
+          <Pressable style={styles.quickButton}>
+            <Target color={colors.ink} size={17} />
+            <Text style={styles.quickButtonText}>Goals</Text>
+          </Pressable>
+        </Link>
       </View>
 
       <View style={styles.tileGrid}>
@@ -328,19 +357,20 @@ const styles = StyleSheet.create({
     height: 42,
     justifyContent: 'center',
   },
-  searchMock: {
+  searchAction: {
     alignItems: 'center',
     backgroundColor: colors.surfaceMuted,
     borderRadius: 18,
     flexDirection: 'row',
+    gap: spacing.sm,
     height: 46,
-    justifyContent: 'space-between',
     marginBottom: spacing.md,
     paddingLeft: spacing.lg,
     paddingRight: spacing.xs,
   },
   searchText: {
     color: colors.textSoft,
+    flex: 1,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -359,6 +389,29 @@ const styles = StyleSheet.create({
   },
   outlineButtonText: {
     color: colors.surface,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  quickRail: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  quickButton: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    flex: 1,
+    flexDirection: 'row',
+    gap: spacing.sm,
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingHorizontal: spacing.md,
+  },
+  quickButtonText: {
+    color: colors.ink,
     fontSize: 13,
     fontWeight: '900',
   },

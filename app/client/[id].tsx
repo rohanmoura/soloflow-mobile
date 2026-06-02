@@ -66,17 +66,19 @@ export default function ClientDetailScreen() {
         </View>
       </Card>
 
-      <PrimaryButton
-        label="Edit client"
-        icon={Pencil}
-        onPress={() => router.push(`/client/edit/${client.id}` as Href)}
-      />
-      <PrimaryButton
-        label="Create invoice"
-        icon={FilePlus2}
-        tone="dark"
-        onPress={() => router.push(`/invoice/add?clientId=${client.id}` as Href)}
-      />
+      <View style={styles.actionStack}>
+        <PrimaryButton
+          label="Edit client"
+          icon={Pencil}
+          onPress={() => router.push(`/client/edit/${client.id}` as Href)}
+        />
+        <PrimaryButton
+          label="Create invoice"
+          icon={FilePlus2}
+          tone="dark"
+          onPress={() => router.push(`/invoice/add?clientId=${client.id}` as Href)}
+        />
+      </View>
 
       <View style={styles.moneyGrid}>
         <Card>
@@ -207,6 +209,10 @@ const styles = StyleSheet.create({
   moneyGrid: {
     flexDirection: 'row',
     gap: spacing.md,
+  },
+  actionStack: {
+    gap: spacing.md,
+    marginBottom: spacing.md,
   },
   label: {
     color: colors.textMuted,

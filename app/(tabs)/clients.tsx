@@ -1,5 +1,5 @@
 import { Link, router, type Href } from 'expo-router';
-import { Plus, Search, SlidersHorizontal } from 'lucide-react-native';
+import { SearchX, Plus, Search, SlidersHorizontal } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -7,6 +7,7 @@ import { AppHeader } from '@/components/ui/AppHeader';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Screen } from '@/components/ui/Screen';
 import { useClientSummaries, useSoloFlowStore } from '@/store/appStore';
@@ -52,7 +53,9 @@ export default function ClientsScreen() {
         title="Client money"
         subtitle={`${formatCurrency(unpaidTotal, profile.currency)} unpaid across invoices.`}
       />
-      <PrimaryButton label="Add client" icon={Plus} onPress={() => router.push('/client/add' as Href)} />
+      <View style={styles.primaryAction}>
+        <PrimaryButton label="Add client" icon={Plus} onPress={() => router.push('/client/add' as Href)} />
+      </View>
 
       <View style={styles.searchShell}>
         <Search color={colors.textMuted} size={18} />
@@ -88,10 +91,14 @@ export default function ClientsScreen() {
       </View>
 
       {filteredClients.length === 0 ? (
-        <Card>
-          <Text style={styles.emptyTitle}>No clients match this view</Text>
-          <Text style={styles.emptyCopy}>Try another status or search by client, company, or email.</Text>
-        </Card>
+        <EmptyState
+          actionIcon={Plus}
+          actionLabel="Add client"
+          icon={SearchX}
+          message="Try another status or search by client, company, or email."
+          onAction={() => router.push('/client/add' as Href)}
+          title="No clients match this view"
+        />
       ) : null}
 
       {filteredClients.map((client) => (
@@ -142,6 +149,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     marginBottom: spacing.lg,
+  },
+  primaryAction: {
+    marginBottom: spacing.md,
   },
   searchShell: {
     alignItems: 'center',
@@ -246,16 +256,5 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 13,
     marginTop: spacing.lg,
-  },
-  emptyTitle: {
-    color: colors.ink,
-    fontSize: 17,
-    fontWeight: '900',
-  },
-  emptyCopy: {
-    color: colors.textMuted,
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: spacing.xs,
   },
 });

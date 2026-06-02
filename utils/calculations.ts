@@ -103,6 +103,7 @@ export function calculateInsights(
   });
 
   const highestExpenseCategory = [...expenseCategoryTotals.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'None';
+  const bestMonth = getBestIncomeMonth(paidIncome);
 
   return {
     income,
@@ -119,7 +120,7 @@ export function calculateInsights(
     savingsRate: income > 0 ? Math.round((profit / income) * 100) : 0,
     topClientName,
     topClientRevenue,
-    bestMonth: 'May 2026',
+    bestMonth,
     highestExpenseCategory,
   };
 }
@@ -142,6 +143,26 @@ export function syncGoalProgress(goals: Goal[], profile: UserProfile, transactio
 
 function getLatestMonth(transactions: Transaction[]) {
   return [...transactions].sort((a, b) => b.date.localeCompare(a.date))[0]?.date.slice(0, 7) ?? getMonthKey(new Date().toISOString());
+}
+
+function getBestIncomeMonth(transactions: Transaction[]) {
+  const monthTotals = new Map<string, number>();
+
+  transactions.forEach((transaction) => {
+    const monthKey = transaction.date.slice(0, 7);
+    monthTotals.set(monthKey, (monthTotals.get(monthKey) ?? 0) + transaction.amount);
+  });
+
+  const [bestMonth] = [...monthTotals.entries()].sort((a, b) => b[1] - a[1])[0] ?? [];
+
+  if (!bestMonth) {
+    return 'No income yet';
+  }
+
+  return new Date(`${bestMonth}-01T00:00:00`).toLocaleString('en', {
+    month: 'long',
+    year: 'numeric',
+  });
 }
 
 function sumBy<T extends Record<string, unknown>>(items: T[], key: keyof T) {

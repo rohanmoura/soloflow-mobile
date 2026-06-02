@@ -13,7 +13,7 @@ export const mockProfile: UserProfile = {
   savingsGoal: 2000,
   expenseLimit: 2500,
   trackingPreferences: ['income', 'expenses', 'invoices', 'goals', 'clients'],
-  onboardingCompleted: true,
+  onboardingCompleted: false,
   createdAt: now,
 };
 
@@ -77,6 +77,20 @@ export const mockClients: Client[] = [
 
 export const mockInvoices: Invoice[] = [
   {
+    id: 'invoice-1043',
+    clientId: 'client-novalaunch',
+    invoiceNumber: 'INV-1043',
+    title: 'MVP discovery and sprint one',
+    amount: 2800,
+    currency: 'USD',
+    issueDate: '2026-05-02',
+    dueDate: '2026-05-18',
+    paidDate: '2026-05-24',
+    status: 'paid',
+    lineItems: [{ id: 'line-1043-1', description: 'MVP discovery and sprint one', quantity: 1, rate: 2800, amount: 2800 }],
+    createdAt: now,
+  },
+  {
     id: 'invoice-1042',
     clientId: 'client-novalaunch',
     invoiceNumber: 'INV-1042',
@@ -119,6 +133,20 @@ export const mockInvoices: Invoice[] = [
     createdAt: now,
   },
   {
+    id: 'invoice-1040-paid',
+    clientId: 'client-mentordesk',
+    invoiceNumber: 'INV-1040-A',
+    title: 'Product strategy consultation',
+    amount: 900,
+    currency: 'USD',
+    issueDate: '2026-05-20',
+    dueDate: '2026-05-27',
+    paidDate: '2026-05-27',
+    status: 'paid',
+    lineItems: [{ id: 'line-1040-paid-1', description: 'Product strategy consultation', quantity: 1, rate: 900, amount: 900 }],
+    createdAt: now,
+  },
+  {
     id: 'invoice-1039',
     clientId: 'client-pixelforge',
     invoiceNumber: 'INV-1039',
@@ -130,6 +158,20 @@ export const mockInvoices: Invoice[] = [
     paidDate: '2026-05-09',
     status: 'paid',
     lineItems: [{ id: 'line-1039-1', description: 'Monthly frontend support', quantity: 1, rate: 1800, amount: 1800 }],
+    createdAt: now,
+  },
+  {
+    id: 'invoice-1037',
+    clientId: 'client-pixelforge',
+    invoiceNumber: 'INV-1037',
+    title: 'Design system support sprint',
+    amount: 1800,
+    currency: 'USD',
+    issueDate: '2026-04-02',
+    dueDate: '2026-04-12',
+    paidDate: '2026-04-12',
+    status: 'paid',
+    lineItems: [{ id: 'line-1037-1', description: 'Design system support sprint', quantity: 1, rate: 1800, amount: 1800 }],
     createdAt: now,
   },
   {

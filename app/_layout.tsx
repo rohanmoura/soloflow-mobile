@@ -5,6 +5,9 @@ import { useEffect } from 'react';
 import { Text, TextInput } from 'react-native';
 import 'react-native-reanimated';
 
+import { AppLoading } from '@/components/ui/AppLoading';
+import { useSoloFlowStore } from '@/store/appStore';
+
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
@@ -30,6 +33,7 @@ export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+  const hasHydrated = useSoloFlowStore((state) => state.hasHydrated);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
@@ -44,6 +48,10 @@ export default function RootLayout() {
 
   if (!loaded) {
     return null;
+  }
+
+  if (!hasHydrated) {
+    return <AppLoading />;
   }
 
   return <RootLayoutNav />;

@@ -1,14 +1,20 @@
 import type { PropsWithChildren } from 'react';
+import type { StyleProp, ViewStyle } from 'react-native';
 import { StyleSheet, View } from 'react-native';
 
 import { colors, radii, shadows, spacing } from '@/theme/tokens';
 
 type CardProps = PropsWithChildren<{
   tone?: 'default' | 'strong' | 'muted';
+  style?: StyleProp<ViewStyle>;
 }>;
 
-export function Card({ children, tone = 'default' }: CardProps) {
-  return <View style={[styles.card, tone === 'strong' && styles.strong, tone === 'muted' && styles.muted]}>{children}</View>;
+export function Card({ children, tone = 'default', style }: CardProps) {
+  return (
+    <View style={[styles.card, tone === 'strong' && styles.strong, tone === 'muted' && styles.muted, style]}>
+      {children}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({

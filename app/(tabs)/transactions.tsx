@@ -7,6 +7,7 @@ import { AppHeader } from '@/components/ui/AppHeader';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Screen } from '@/components/ui/Screen';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useSoloFlowStore } from '@/store/appStore';
@@ -118,13 +119,11 @@ export default function TransactionsScreen() {
           </Link>
         ))
       ) : (
-        <Card>
-          <View style={styles.emptyIcon}>
-            <WalletCards color={colors.primary} size={26} />
-          </View>
-          <Text style={styles.emptyTitle}>No matching records</Text>
-          <Text style={styles.emptyText}>Try a broader search or switch filters back to all types and statuses.</Text>
-        </Card>
+        <EmptyState
+          icon={WalletCards}
+          title="No matching records"
+          message="Try a broader search or switch filters back to all types and statuses."
+        />
       )}
     </Screen>
   );
@@ -209,25 +208,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
-  },
-  emptyIcon: {
-    alignItems: 'center',
-    backgroundColor: colors.primarySoft,
-    borderRadius: 8,
-    height: 52,
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-    width: 52,
-  },
-  emptyTitle: {
-    color: colors.ink,
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  emptyText: {
-    color: colors.textMuted,
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: spacing.xs,
   },
 });

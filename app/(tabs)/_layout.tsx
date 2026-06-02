@@ -1,10 +1,17 @@
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import { BarChart3, BriefcaseBusiness, Home, ReceiptText, Settings } from 'lucide-react-native';
 
 import { FloatingTabBar } from '@/components/ui/FloatingTabBar';
+import { useSoloFlowStore } from '@/store/appStore';
 import { colors } from '@/theme/tokens';
 
 export default function TabLayout() {
+  const onboardingCompleted = useSoloFlowStore((state) => state.profile.onboardingCompleted);
+
+  if (!onboardingCompleted) {
+    return <Redirect href="/onboarding" />;
+  }
+
   return (
     <Tabs
       tabBar={(props) => <FloatingTabBar {...props} />}

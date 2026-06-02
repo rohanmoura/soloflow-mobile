@@ -1,6 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { router, type Href, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, BellRing, CheckCircle2, FileText, Pencil } from 'lucide-react-native';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/ui/AppHeader';
@@ -20,6 +21,7 @@ export default function InvoiceDetailScreen() {
   const clients = useSoloFlowStore((state) => state.clients);
   const invoice = useSoloFlowStore((state) => state.invoices.find((item) => item.id === id));
   const markInvoicePaid = useSoloFlowStore((state) => state.markInvoicePaid);
+  const [reminderStatus, setReminderStatus] = useState('');
   const client = clients.find((item) => item.id === invoice?.clientId);
 
   if (!invoice) {
@@ -40,6 +42,11 @@ export default function InvoiceDetailScreen() {
     }
 
     markInvoicePaid(invoice.id);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
+
+  function handleReminder() {
+    setReminderStatus(`Reminder queued for ${client?.name ?? 'this client'}.`);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }
 
@@ -84,20 +91,28 @@ export default function InvoiceDetailScreen() {
           Issued {formatShortDate(invoice.issueDate)}. Due {formatShortDate(invoice.dueDate)}.
           {invoice.paidDate ? ` Paid ${formatShortDate(invoice.paidDate)}.` : ' Reminder action is ready.'}
         </Text>
+        {reminderStatus ? <Text style={styles.successText}>{reminderStatus}</Text> : null}
       </Card>
 
-      <PrimaryButton
-        label="Edit invoice"
-        icon={Pencil}
-        onPress={() => router.push(`/invoice/edit/${invoice.id}` as Href)}
-      />
+      <View style={styles.actions}>
+        <PrimaryButton
+          label="Edit invoice"
+          icon={Pencil}
+          onPress={() => router.push(`/invoice/edit/${invoice.id}` as Href)}
+        />
 
-      {invoice.status === 'pending' || invoice.status === 'overdue' ? (
-        <View style={styles.actions}>
+        {invoice.status === 'pending' || invoice.status === 'overdue' ? (
+          <>
           <PrimaryButton label="Mark paid" icon={CheckCircle2} onPress={handleMarkPaid} />
-          <PrimaryButton label="Mock reminder" icon={BellRing} tone="dark" onPress={() => router.back()} />
-        </View>
-      ) : null}
+          <PrimaryButton
+            label={reminderStatus ? 'Reminder queued' : 'Queue reminder'}
+            icon={BellRing}
+            tone="dark"
+            onPress={handleReminder}
+          />
+          </>
+        ) : null}
+      </View>
     </Screen>
   );
 }
@@ -198,5 +213,11 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: spacing.md,
+  },
+  successText: {
+    color: colors.success,
+    fontSize: 13,
+    fontWeight: '900',
+    marginTop: spacing.sm,
   },
 });

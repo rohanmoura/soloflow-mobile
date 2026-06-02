@@ -8,6 +8,7 @@ import type { Client, Goal, Invoice, Transaction } from '@/types/finance';
 import { calculateClientSummaries, calculateDashboard, calculateInsights, syncGoalProgress } from '@/utils/calculations';
 
 type SoloFlowState = {
+  hasHydrated: boolean;
   profile: typeof mockProfile;
   clients: typeof mockClients;
   invoices: Invoice[];
@@ -25,11 +26,13 @@ type SoloFlowState = {
   completeOnboarding: (profileUpdates: Partial<typeof mockProfile>) => void;
   markInvoicePaid: (invoiceId: string) => void;
   resetDemoData: () => void;
+  setHasHydrated: (hasHydrated: boolean) => void;
 };
 
 export const useSoloFlowStore = create<SoloFlowState>()(
   persist(
     (set) => ({
+      hasHydrated: false,
       profile: mockProfile,
       clients: mockClients,
       invoices: mockInvoices,
@@ -86,9 +89,30 @@ export const useSoloFlowStore = create<SoloFlowState>()(
           };
         }),
       updateInvoice: (invoiceId, updates) =>
-        set((state) => ({
-          invoices: state.invoices.map((invoice) => (invoice.id === invoiceId ? { ...invoice, ...updates } : invoice)),
-        })),
+        set((state) => {
+          const timestamp = new Date().toISOString();
+          const previousInvoice = state.invoices.find((invoice) => invoice.id === invoiceId);
+          const paidDate =
+            updates.status === 'paid' && !updates.paidDate ? new Date().toISOString().slice(0, 10) : updates.paidDate;
+          const invoices = state.invoices.map((invoice) =>
+            invoice.id === invoiceId ? { ...invoice, ...updates, ...(paidDate ? { paidDate } : {}) } : invoice,
+          );
+          const updatedInvoice = invoices.find((invoice) => invoice.id === invoiceId);
+          const shouldCreatePaidTransaction =
+            previousInvoice?.status !== 'paid' &&
+            updatedInvoice?.status === 'paid' &&
+            !state.transactions.some((transaction) => transaction.invoiceId === invoiceId);
+          const nextTransactions =
+            updatedInvoice && shouldCreatePaidTransaction
+              ? [createPaidInvoiceTransaction(updatedInvoice, paidDate ?? new Date().toISOString().slice(0, 10), timestamp), ...state.transactions]
+              : state.transactions;
+
+          return {
+            invoices,
+            transactions: nextTransactions,
+            goals: syncGoalProgress(state.goals, state.profile, nextTransactions),
+          };
+        }),
       addTransaction: (transaction) =>
         set((state) => {
           const timestamp = new Date().toISOString();
@@ -168,13 +192,19 @@ export const useSoloFlowStore = create<SoloFlowState>()(
           };
         }),
       completeOnboarding: (profileUpdates) =>
-        set((state) => ({
-          profile: {
+        set((state) => {
+          const nextProfile = {
             ...state.profile,
             ...profileUpdates,
             onboardingCompleted: true,
-          },
-        })),
+          };
+          const nextGoals = syncGoalTargetsWithProfile(state.goals, nextProfile);
+
+          return {
+            profile: nextProfile,
+            goals: syncGoalProgress(nextGoals, nextProfile, state.transactions),
+          };
+        }),
       markInvoicePaid: (invoiceId) =>
         set((state) => {
           const paidDate = new Date().toISOString().slice(0, 10);
@@ -187,21 +217,7 @@ export const useSoloFlowStore = create<SoloFlowState>()(
           const nextTransactions =
             paidInvoice && !alreadyLinked
               ? [
-                  {
-                    id: `txn-invoice-${invoiceId}-${Date.now()}`,
-                    title: `${paidInvoice.invoiceNumber} payment`,
-                    type: 'income' as const,
-                    amount: paidInvoice.amount,
-                    currency: paidInvoice.currency,
-                    category: 'Project payment',
-                    clientId: paidInvoice.clientId,
-                    invoiceId,
-                    date: paidDate,
-                    status: 'paid' as const,
-                    notes: `Auto-created when ${paidInvoice.invoiceNumber} was marked paid.`,
-                    createdAt: timestamp,
-                    updatedAt: timestamp,
-                  },
+                  createPaidInvoiceTransaction(paidInvoice, paidDate, timestamp),
                   ...state.transactions,
                 ]
               : state.transactions;
@@ -214,19 +230,55 @@ export const useSoloFlowStore = create<SoloFlowState>()(
         }),
       resetDemoData: () =>
         set({
-          profile: mockProfile,
+          profile: { ...mockProfile, onboardingCompleted: true },
           clients: mockClients,
           invoices: mockInvoices,
           transactions: mockTransactions,
           goals: mockGoals,
         }),
+      setHasHydrated: (hasHydrated) => set({ hasHydrated }),
     }),
     {
       name: 'soloflow-demo-store',
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     },
   ),
 );
+
+function createPaidInvoiceTransaction(invoice: Invoice, paidDate: string, timestamp: string): Transaction {
+  return {
+    id: `txn-invoice-${invoice.id}-${Date.now()}`,
+    title: `${invoice.invoiceNumber} payment`,
+    type: 'income',
+    amount: invoice.amount,
+    currency: invoice.currency,
+    category: 'Project payment',
+    clientId: invoice.clientId,
+    invoiceId: invoice.id,
+    date: paidDate,
+    status: 'paid',
+    notes: `Auto-created when ${invoice.invoiceNumber} was marked paid.`,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+}
+
+function syncGoalTargetsWithProfile(goals: Goal[], profile: typeof mockProfile) {
+  return goals.map((goal) => {
+    if (goal.type === 'revenue') {
+      return { ...goal, targetAmount: profile.monthlyRevenueGoal };
+    }
+
+    if (goal.type === 'savings') {
+      return { ...goal, targetAmount: profile.savingsGoal };
+    }
+
+    return { ...goal, targetAmount: profile.expenseLimit };
+  });
+}
 
 export function useDashboardSummary() {
   const profile = useSoloFlowStore((state) => state.profile);

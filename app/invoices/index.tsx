@@ -8,6 +8,7 @@ import { AppHeader } from '@/components/ui/AppHeader';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Screen } from '@/components/ui/Screen';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -56,7 +57,9 @@ export default function InvoicesScreen() {
         title="Payments"
         subtitle={`${formatCurrency(unpaidTotal, profile.currency)} pending or overdue across current client invoices.`}
       />
-      <PrimaryButton label="Create invoice" icon={Plus} onPress={() => router.push('/invoice/add' as Href)} />
+      <View style={styles.primaryAction}>
+        <PrimaryButton label="Create invoice" icon={Plus} onPress={() => router.push('/invoice/add' as Href)} />
+      </View>
 
       <View style={styles.filterRow}>
         {filters.map((item) => (
@@ -113,10 +116,14 @@ export default function InvoicesScreen() {
           </Link>
         ))
       ) : (
-        <Card>
-          <Text style={styles.emptyTitle}>No invoices here</Text>
-          <Text style={styles.emptyText}>Switch filters to view another invoice status.</Text>
-        </Card>
+        <EmptyState
+          actionIcon={Plus}
+          actionLabel="Create invoice"
+          icon={FileText}
+          message="Switch filters to view another invoice status, or create a new client invoice."
+          onAction={() => router.push('/invoice/add' as Href)}
+          title="No invoices here"
+        />
       )}
     </Screen>
   );
@@ -139,6 +146,9 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
     marginBottom: spacing.lg,
+  },
+  primaryAction: {
+    marginBottom: spacing.md,
   },
   invoiceHeader: {
     alignItems: 'center',
@@ -203,16 +213,5 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     flex: 1,
     fontSize: 13,
-  },
-  emptyTitle: {
-    color: colors.ink,
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  emptyText: {
-    color: colors.textMuted,
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: spacing.xs,
   },
 });
