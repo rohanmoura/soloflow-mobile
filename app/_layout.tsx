@@ -1,10 +1,9 @@
 import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { Text, TextInput } from 'react-native';
 import 'react-native-reanimated';
-
-import { useColorScheme } from '@/components/useColorScheme';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -18,6 +17,14 @@ export const unstable_settings = {
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+
+const scalableText = Text as typeof Text & { defaultProps?: { maxFontSizeMultiplier?: number } };
+const scalableTextInput = TextInput as typeof TextInput & { defaultProps?: { maxFontSizeMultiplier?: number } };
+
+scalableText.defaultProps = scalableText.defaultProps ?? {};
+scalableText.defaultProps.maxFontSizeMultiplier = 1.08;
+scalableTextInput.defaultProps = scalableTextInput.defaultProps ?? {};
+scalableTextInput.defaultProps.maxFontSizeMultiplier = 1.08;
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -43,14 +50,22 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-    </ThemeProvider>
+    <Stack>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="onboarding/index" options={{ headerShown: false }} />
+      <Stack.Screen name="client/add" options={{ headerShown: false, presentation: 'modal' }} />
+      <Stack.Screen name="client/edit/[id]" options={{ headerShown: false, presentation: 'modal' }} />
+      <Stack.Screen name="client/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="invoice/add" options={{ headerShown: false, presentation: 'modal' }} />
+      <Stack.Screen name="invoice/edit/[id]" options={{ headerShown: false, presentation: 'modal' }} />
+      <Stack.Screen name="invoices/index" options={{ headerShown: false }} />
+      <Stack.Screen name="invoice/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="goals/index" options={{ headerShown: false }} />
+      <Stack.Screen name="transaction/add" options={{ headerShown: false, presentation: 'modal' }} />
+      <Stack.Screen name="transaction/edit/[id]" options={{ headerShown: false, presentation: 'modal' }} />
+      <Stack.Screen name="transaction/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+    </Stack>
   );
 }
