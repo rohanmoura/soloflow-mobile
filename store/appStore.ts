@@ -4,8 +4,20 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { mockClients, mockGoals, mockInvoices, mockProfile, mockTransactions } from '@/data/mockData';
-import type { AppPreferences, Client, Goal, Invoice, Transaction } from '@/types/finance';
+import { pushSnapshotToCloud } from '@/services/cloudSync';
+import type { AppPreferences, Client, Goal, Invoice, SyncStatus, Transaction } from '@/types/finance';
 import { calculateClientSummaries, calculateDashboard, calculateInsights, syncGoalProgress } from '@/utils/calculations';
+
+const defaultPreferences: AppPreferences = {
+  paymentReminders: true,
+  darkModePreview: false,
+};
+
+const defaultSyncStatus: SyncStatus = {
+  mode: 'local',
+  message: 'Local-first mode. Add Supabase keys to enable cloud backup.',
+  syncing: false,
+};
 
 type SoloFlowState = {
   hasHydrated: boolean;
@@ -15,6 +27,7 @@ type SoloFlowState = {
   transactions: Transaction[];
   goals: Goal[];
   preferences: AppPreferences;
+  syncStatus: SyncStatus;
   addClient: (client: Omit<Client, 'id' | 'avatar' | 'createdAt'>) => void;
   updateClient: (clientId: string, updates: Partial<Omit<Client, 'id' | 'createdAt'>>) => void;
   addInvoice: (invoice: Omit<Invoice, 'id' | 'invoiceNumber' | 'amount' | 'lineItems' | 'createdAt'> & { amount: number; service: string }) => void;
@@ -28,6 +41,7 @@ type SoloFlowState = {
   markInvoicePaid: (invoiceId: string) => void;
   updatePreferences: (updates: Partial<AppPreferences>) => void;
   prepareMonthlyReport: () => void;
+  syncToCloud: () => Promise<void>;
   resetDemoData: () => void;
   setHasHydrated: (hasHydrated: boolean) => void;
 };
@@ -41,10 +55,8 @@ export const useSoloFlowStore = create<SoloFlowState>()(
       invoices: mockInvoices,
       transactions: mockTransactions,
       goals: mockGoals,
-      preferences: {
-        paymentReminders: true,
-        darkModePreview: false,
-      },
+      preferences: defaultPreferences,
+      syncStatus: defaultSyncStatus,
       addClient: (client) =>
         set((state) => {
           const initials = client.name
@@ -238,6 +250,7 @@ export const useSoloFlowStore = create<SoloFlowState>()(
       updatePreferences: (updates) =>
         set((state) => ({
           preferences: {
+            ...defaultPreferences,
             ...state.preferences,
             ...updates,
           },
@@ -249,11 +262,39 @@ export const useSoloFlowStore = create<SoloFlowState>()(
 
           return {
             preferences: {
+              ...defaultPreferences,
               ...state.preferences,
               lastReportSummary: summary,
             },
           };
         }),
+      syncToCloud: async () => {
+        set((state) => ({
+          syncStatus: {
+            ...state.syncStatus,
+            syncing: true,
+            message: 'Preparing backup...',
+          },
+        }));
+
+        const snapshot = useSoloFlowStore.getState();
+        const result = await pushSnapshotToCloud({
+          profile: snapshot.profile,
+          clients: snapshot.clients,
+          invoices: snapshot.invoices,
+          transactions: snapshot.transactions,
+          goals: snapshot.goals,
+        });
+
+        set({
+          syncStatus: {
+            mode: result.mode === 'error' ? 'error' : result.mode,
+            message: result.message,
+            lastSyncedAt: result.syncedAt,
+            syncing: false,
+          },
+        });
+      },
       resetDemoData: () =>
         set({
           profile: { ...mockProfile, onboardingCompleted: true },
@@ -261,10 +302,8 @@ export const useSoloFlowStore = create<SoloFlowState>()(
           invoices: mockInvoices,
           transactions: mockTransactions,
           goals: mockGoals,
-          preferences: {
-            paymentReminders: true,
-            darkModePreview: false,
-          },
+          preferences: defaultPreferences,
+          syncStatus: defaultSyncStatus,
         }),
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
     }),
@@ -272,6 +311,17 @@ export const useSoloFlowStore = create<SoloFlowState>()(
       name: 'soloflow-demo-store',
       storage: createJSONStorage(() => AsyncStorage),
       onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.preferences = {
+            ...defaultPreferences,
+            ...state.preferences,
+          };
+          state.syncStatus = {
+            ...defaultSyncStatus,
+            ...state.syncStatus,
+            syncing: false,
+          };
+        }
         state?.setHasHydrated(true);
       },
     },

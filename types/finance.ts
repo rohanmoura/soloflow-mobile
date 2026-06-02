@@ -121,3 +121,12 @@ export type AppPreferences = {
   darkModePreview: boolean;
   lastReportSummary?: string;
 };
+
+export type SyncMode = 'local' | 'cloud' | 'error';
+
+export type SyncStatus = {
+  mode: SyncMode;
+  message: string;
+  lastSyncedAt?: string;
+  syncing: boolean;
+};

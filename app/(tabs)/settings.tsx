@@ -1,6 +1,6 @@
 import { Link, type Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Bell, BriefcaseBusiness, Download, Moon, RotateCcw } from 'lucide-react-native';
+import { Bell, BriefcaseBusiness, Cloud, Download, Moon, RotateCcw } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -23,14 +23,21 @@ export default function SettingsScreen() {
   const profile = useSoloFlowStore((state) => state.profile);
   const goals = useSoloFlowStore((state) => state.goals);
   const preferences = useSoloFlowStore((state) => state.preferences);
+  const syncStatus = useSoloFlowStore((state) => state.syncStatus);
   const updateProfile = useSoloFlowStore((state) => state.updateProfile);
   const updatePreferences = useSoloFlowStore((state) => state.updatePreferences);
   const prepareMonthlyReport = useSoloFlowStore((state) => state.prepareMonthlyReport);
+  const syncToCloud = useSoloFlowStore((state) => state.syncToCloud);
   const resetDemoData = useSoloFlowStore((state) => state.resetDemoData);
   const [resetStatus, setResetStatus] = useState('');
 
   function handleExport() {
     prepareMonthlyReport();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
+
+  async function handleCloudSync() {
+    await syncToCloud();
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }
 
@@ -154,6 +161,23 @@ export default function SettingsScreen() {
         </View>
         <Pressable style={styles.setupButton} onPress={handleExport}>
           <Text style={styles.setupButtonText}>Prepare report</Text>
+        </Pressable>
+      </Card>
+
+      <SectionHeader title="Cloud sync" detail={syncStatus.mode === 'cloud' ? 'Connected' : 'V2-ready'} />
+      <Card>
+        <View style={styles.actionRow}>
+          <View style={[styles.actionIcon, syncStatus.mode === 'error' && styles.errorIcon]}>
+            <Cloud color={syncStatus.mode === 'error' ? colors.danger : colors.primary} size={20} />
+          </View>
+          <View style={styles.actionCopy}>
+            <Text style={styles.goalTitle}>Supabase backup</Text>
+            <Text style={styles.meta}>{syncStatus.message}</Text>
+            {syncStatus.lastSyncedAt ? <Text style={styles.timestampText}>Last checked {syncStatus.lastSyncedAt.slice(0, 16)}</Text> : null}
+          </View>
+        </View>
+        <Pressable style={[styles.setupButton, syncStatus.syncing && styles.disabledButton]} onPress={handleCloudSync} disabled={syncStatus.syncing}>
+          <Text style={styles.setupButtonText}>{syncStatus.syncing ? 'Syncing...' : 'Run backup check'}</Text>
         </Pressable>
       </Card>
 
@@ -323,6 +347,9 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
     width: 40,
   },
+  errorIcon: {
+    backgroundColor: colors.dangerSoft,
+  },
   actionCopy: {
     flex: 1,
     paddingRight: spacing.sm,
@@ -353,5 +380,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: spacing.sm,
     textAlign: 'center',
+  },
+  timestampText: {
+    color: colors.textSoft,
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: spacing.xs,
+  },
+  disabledButton: {
+    opacity: 0.62,
   },
 });
