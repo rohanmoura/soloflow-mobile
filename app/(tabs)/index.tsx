@@ -88,15 +88,19 @@ export default function HomeScreen() {
 
       <View style={styles.quickRail}>
         <Link href={'/invoice/add' as Href} asChild>
-          <Pressable style={styles.quickButton}>
-            <FilePlus2 color={colors.ink} size={17} />
-            <Text style={styles.quickButtonText}>Add invoice</Text>
+          <Pressable style={styles.quickButtonShell}>
+            <LinearGradient colors={['#111827', '#2563EB']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.quickButtonGradient}>
+              <FilePlus2 color={colors.surface} size={17} />
+              <Text style={styles.quickButtonText}>Add invoice</Text>
+            </LinearGradient>
           </Pressable>
         </Link>
         <Link href={'/goals' as Href} asChild>
-          <Pressable style={styles.quickButton}>
-            <Target color={colors.ink} size={17} />
-            <Text style={styles.quickButtonText}>Goals</Text>
+          <Pressable style={styles.quickButtonShell}>
+            <LinearGradient colors={['#0F9F6E', '#1D4ED8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.quickButtonGradient}>
+              <Target color={colors.surface} size={17} />
+              <Text style={styles.quickButtonText}>Goals</Text>
+            </LinearGradient>
           </Pressable>
         </Link>
       </View>
@@ -397,21 +401,25 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.md,
   },
-  quickButton: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.82)',
-    borderColor: colors.border,
-    borderRadius: 8,
-    borderWidth: 1,
+  quickButtonShell: {
     flex: 1,
+  },
+  quickButtonGradient: {
+    alignItems: 'center',
+    borderRadius: 8,
     flexDirection: 'row',
     gap: spacing.sm,
     justifyContent: 'center',
     minHeight: 44,
     paddingHorizontal: spacing.md,
+    shadowColor: '#1D4ED8',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.16,
+    shadowRadius: 14,
+    elevation: 3,
   },
   quickButtonText: {
-    color: colors.ink,
+    color: colors.surface,
     fontSize: 13,
     fontWeight: '900',
   },

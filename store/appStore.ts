@@ -4,13 +4,14 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { mockClients, mockGoals, mockInvoices, mockProfile, mockTransactions } from '@/data/mockData';
-import { pushSnapshotToCloud } from '@/services/cloudSync';
+import { pullSnapshotFromCloud, pushSnapshotToCloud } from '@/services/cloudSync';
 import type { AppPreferences, Client, Goal, Invoice, SyncStatus, Transaction } from '@/types/finance';
 import { calculateClientSummaries, calculateDashboard, calculateInsights, syncGoalProgress } from '@/utils/calculations';
 
 const defaultPreferences: AppPreferences = {
   paymentReminders: true,
   darkModePreview: false,
+  autoCloudBackup: true,
 };
 
 const defaultSyncStatus: SyncStatus = {
@@ -42,6 +43,7 @@ type SoloFlowState = {
   updatePreferences: (updates: Partial<AppPreferences>) => void;
   prepareMonthlyReport: () => void;
   syncToCloud: () => Promise<void>;
+  restoreFromCloud: () => Promise<void>;
   resetDemoData: () => void;
   setHasHydrated: (hasHydrated: boolean) => void;
 };
@@ -269,22 +271,36 @@ export const useSoloFlowStore = create<SoloFlowState>()(
           };
         }),
       syncToCloud: async () => {
+        await backupCurrentState('manual');
+      },
+      restoreFromCloud: async () => {
         set((state) => ({
           syncStatus: {
             ...state.syncStatus,
             syncing: true,
-            message: 'Preparing backup...',
+            message: 'Checking cloud backup...',
           },
         }));
 
-        const snapshot = useSoloFlowStore.getState();
-        const result = await pushSnapshotToCloud({
-          profile: snapshot.profile,
-          clients: snapshot.clients,
-          invoices: snapshot.invoices,
-          transactions: snapshot.transactions,
-          goals: snapshot.goals,
-        });
+        const result = await pullSnapshotFromCloud();
+
+        if (result.ok && result.snapshot) {
+          suppressNextAutoBackup = true;
+          set({
+            profile: result.snapshot.profile,
+            clients: result.snapshot.clients,
+            invoices: result.snapshot.invoices,
+            transactions: result.snapshot.transactions,
+            goals: result.snapshot.goals,
+            syncStatus: {
+              mode: result.mode,
+              message: result.message,
+              lastSyncedAt: result.snapshot.updatedAt,
+              syncing: false,
+            },
+          });
+          return;
+        }
 
         set({
           syncStatus: {
@@ -327,6 +343,73 @@ export const useSoloFlowStore = create<SoloFlowState>()(
     },
   ),
 );
+
+let autoBackupTimer: ReturnType<typeof setTimeout> | undefined;
+let suppressNextAutoBackup = false;
+
+useSoloFlowStore.subscribe((state, previousState) => {
+  const changedFinanceData =
+    state.profile !== previousState.profile ||
+    state.clients !== previousState.clients ||
+    state.invoices !== previousState.invoices ||
+    state.transactions !== previousState.transactions ||
+    state.goals !== previousState.goals;
+
+  if (!changedFinanceData) {
+    return;
+  }
+
+  if (suppressNextAutoBackup) {
+    suppressNextAutoBackup = false;
+    return;
+  }
+
+  if (!state.hasHydrated || !state.preferences.autoCloudBackup || state.syncStatus.mode !== 'cloud') {
+    return;
+  }
+
+  if (autoBackupTimer) {
+    clearTimeout(autoBackupTimer);
+  }
+
+  autoBackupTimer = setTimeout(() => {
+    backupCurrentState('auto');
+  }, 1600);
+});
+
+async function backupCurrentState(source: 'manual' | 'auto') {
+  const state = useSoloFlowStore.getState();
+
+  if (state.syncStatus.syncing) {
+    return;
+  }
+
+  useSoloFlowStore.setState({
+    syncStatus: {
+      ...state.syncStatus,
+      syncing: true,
+      message: source === 'auto' ? 'Auto backup running...' : 'Preparing backup...',
+    },
+  });
+
+  const snapshot = useSoloFlowStore.getState();
+  const result = await pushSnapshotToCloud({
+    profile: snapshot.profile,
+    clients: snapshot.clients,
+    invoices: snapshot.invoices,
+    transactions: snapshot.transactions,
+    goals: snapshot.goals,
+  });
+
+  useSoloFlowStore.setState({
+    syncStatus: {
+      mode: result.mode === 'error' ? 'error' : result.mode,
+      message: source === 'auto' && result.mode === 'cloud' ? 'Auto backup completed.' : result.message,
+      lastSyncedAt: result.syncedAt,
+      syncing: false,
+    },
+  });
+}
 
 function createPaidInvoiceTransaction(invoice: Invoice, paidDate: string, timestamp: string): Transaction {
   return {

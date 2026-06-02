@@ -1,6 +1,6 @@
 import { Link, type Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Bell, BriefcaseBusiness, Cloud, Download, Moon, RotateCcw } from 'lucide-react-native';
+import { Bell, BriefcaseBusiness, Cloud, Download, Moon, RefreshCw, RotateCcw } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -28,6 +28,7 @@ export default function SettingsScreen() {
   const updatePreferences = useSoloFlowStore((state) => state.updatePreferences);
   const prepareMonthlyReport = useSoloFlowStore((state) => state.prepareMonthlyReport);
   const syncToCloud = useSoloFlowStore((state) => state.syncToCloud);
+  const restoreFromCloud = useSoloFlowStore((state) => state.restoreFromCloud);
   const resetDemoData = useSoloFlowStore((state) => state.resetDemoData);
   const [resetStatus, setResetStatus] = useState('');
 
@@ -41,6 +42,11 @@ export default function SettingsScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }
 
+  async function handleCloudRestore() {
+    await restoreFromCloud();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
+
   function handleReset() {
     resetDemoData();
     setResetStatus('Demo data reset to seeded portfolio values.');
@@ -51,7 +57,7 @@ export default function SettingsScreen() {
     Haptics.selectionAsync();
   }
 
-  function togglePreference(key: 'paymentReminders' | 'darkModePreview') {
+  function togglePreference(key: 'paymentReminders' | 'darkModePreview' | 'autoCloudBackup') {
     updatePreferences({ [key]: !preferences[key] });
     Haptics.selectionAsync();
   }
@@ -181,10 +187,27 @@ export default function SettingsScreen() {
             <Text style={styles.secondarySetupButtonText}>Manage cloud account</Text>
           </Pressable>
         </Link>
+        <Pressable
+          style={[styles.secondarySetupButton, syncStatus.syncing && styles.disabledButton]}
+          onPress={handleCloudRestore}
+          disabled={syncStatus.syncing}
+        >
+          <View style={styles.inlineButtonRow}>
+            <RefreshCw color={colors.text} size={17} />
+            <Text style={styles.secondarySetupButtonText}>{syncStatus.syncing ? 'Checking...' : 'Restore latest backup'}</Text>
+          </View>
+        </Pressable>
         <Pressable style={[styles.setupButton, syncStatus.syncing && styles.disabledButton]} onPress={handleCloudSync} disabled={syncStatus.syncing}>
           <Text style={styles.setupButtonText}>{syncStatus.syncing ? 'Syncing...' : 'Run backup check'}</Text>
         </Pressable>
       </Card>
+      <SettingRow
+        icon={Cloud}
+        label="Auto backup"
+        value={preferences.autoCloudBackup ? 'On after first backup' : 'Off'}
+        active={preferences.autoCloudBackup}
+        onPress={() => togglePreference('autoCloudBackup')}
+      />
 
       <SectionHeader title="Portfolio" detail="KMAX proof" />
       <Card>
@@ -340,6 +363,12 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 15,
     fontWeight: '900',
+  },
+  inlineButtonRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.sm,
+    justifyContent: 'center',
   },
   resetText: {
     color: colors.danger,

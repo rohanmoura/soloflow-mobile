@@ -15,6 +15,11 @@ export type CloudSyncResult =
   | { ok: true; mode: 'local'; message: string; syncedAt: string }
   | { ok: false; mode: 'error'; message: string; syncedAt: string };
 
+export type CloudRestoreResult =
+  | { ok: true; mode: 'cloud'; message: string; syncedAt: string; snapshot: CloudSnapshot }
+  | { ok: true; mode: 'local'; message: string; syncedAt: string; snapshot?: undefined }
+  | { ok: false; mode: 'error'; message: string; syncedAt: string; snapshot?: undefined };
+
 export async function pushSnapshotToCloud(snapshot: Omit<CloudSnapshot, 'updatedAt'>): Promise<CloudSyncResult> {
   const syncedAt = new Date().toISOString();
 
@@ -64,5 +69,68 @@ export async function pushSnapshotToCloud(snapshot: Omit<CloudSnapshot, 'updated
     mode: 'cloud',
     message: 'Cloud backup completed.',
     syncedAt,
+  };
+}
+
+export async function pullSnapshotFromCloud(): Promise<CloudRestoreResult> {
+  const syncedAt = new Date().toISOString();
+
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      ok: true,
+      mode: 'local',
+      message: 'Cloud environment keys are needed before restore.',
+      syncedAt,
+    };
+  }
+
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+
+  if (userError || !userData.user) {
+    return {
+      ok: true,
+      mode: 'local',
+      message: 'Sign in to restore your cloud backup.',
+      syncedAt,
+    };
+  }
+
+  const { data, error } = await supabase
+    .from('soloflow_snapshots')
+    .select('profile, clients, invoices, transactions, goals, updated_at')
+    .eq('user_id', userData.user.id)
+    .maybeSingle();
+
+  if (error) {
+    return {
+      ok: false,
+      mode: 'error',
+      message: error.message,
+      syncedAt,
+    };
+  }
+
+  if (!data) {
+    return {
+      ok: true,
+      mode: 'local',
+      message: 'No cloud backup found for this account yet.',
+      syncedAt,
+    };
+  }
+
+  return {
+    ok: true,
+    mode: 'cloud',
+    message: 'Cloud backup restored.',
+    syncedAt,
+    snapshot: {
+      profile: data.profile as CloudSnapshot['profile'],
+      clients: data.clients as CloudSnapshot['clients'],
+      invoices: data.invoices as CloudSnapshot['invoices'],
+      transactions: data.transactions as CloudSnapshot['transactions'],
+      goals: data.goals as CloudSnapshot['goals'],
+      updatedAt: data.updated_at as string,
+    },
   };
 }
