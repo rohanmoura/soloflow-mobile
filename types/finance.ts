@@ -115,3 +115,9 @@ export type InsightSummary = {
   bestMonth: string;
   highestExpenseCategory: string;
 };
+
+export type AppPreferences = {
+  paymentReminders: boolean;
+  darkModePreview: boolean;
+  lastReportSummary?: string;
+};

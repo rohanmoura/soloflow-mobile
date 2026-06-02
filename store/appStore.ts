@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { mockClients, mockGoals, mockInvoices, mockProfile, mockTransactions } from '@/data/mockData';
-import type { Client, Goal, Invoice, Transaction } from '@/types/finance';
+import type { AppPreferences, Client, Goal, Invoice, Transaction } from '@/types/finance';
 import { calculateClientSummaries, calculateDashboard, calculateInsights, syncGoalProgress } from '@/utils/calculations';
 
 type SoloFlowState = {
@@ -14,6 +14,7 @@ type SoloFlowState = {
   invoices: Invoice[];
   transactions: Transaction[];
   goals: Goal[];
+  preferences: AppPreferences;
   addClient: (client: Omit<Client, 'id' | 'avatar' | 'createdAt'>) => void;
   updateClient: (clientId: string, updates: Partial<Omit<Client, 'id' | 'createdAt'>>) => void;
   addInvoice: (invoice: Omit<Invoice, 'id' | 'invoiceNumber' | 'amount' | 'lineItems' | 'createdAt'> & { amount: number; service: string }) => void;
@@ -25,6 +26,8 @@ type SoloFlowState = {
   updateProfile: (profileUpdates: Partial<typeof mockProfile>) => void;
   completeOnboarding: (profileUpdates: Partial<typeof mockProfile>) => void;
   markInvoicePaid: (invoiceId: string) => void;
+  updatePreferences: (updates: Partial<AppPreferences>) => void;
+  prepareMonthlyReport: () => void;
   resetDemoData: () => void;
   setHasHydrated: (hasHydrated: boolean) => void;
 };
@@ -38,6 +41,10 @@ export const useSoloFlowStore = create<SoloFlowState>()(
       invoices: mockInvoices,
       transactions: mockTransactions,
       goals: mockGoals,
+      preferences: {
+        paymentReminders: true,
+        darkModePreview: false,
+      },
       addClient: (client) =>
         set((state) => {
           const initials = client.name
@@ -228,6 +235,25 @@ export const useSoloFlowStore = create<SoloFlowState>()(
             goals: syncGoalProgress(state.goals, state.profile, nextTransactions),
           };
         }),
+      updatePreferences: (updates) =>
+        set((state) => ({
+          preferences: {
+            ...state.preferences,
+            ...updates,
+          },
+        })),
+      prepareMonthlyReport: () =>
+        set((state) => {
+          const dashboard = calculateDashboard(state.profile, state.transactions, state.invoices);
+          const summary = `${dashboard.month} report prepared: ${state.profile.currency} ${dashboard.income.toLocaleString()} income, ${state.profile.currency} ${dashboard.expenses.toLocaleString()} expenses, ${state.profile.currency} ${dashboard.profit.toLocaleString()} net profit.`;
+
+          return {
+            preferences: {
+              ...state.preferences,
+              lastReportSummary: summary,
+            },
+          };
+        }),
       resetDemoData: () =>
         set({
           profile: { ...mockProfile, onboardingCompleted: true },
@@ -235,6 +261,10 @@ export const useSoloFlowStore = create<SoloFlowState>()(
           invoices: mockInvoices,
           transactions: mockTransactions,
           goals: mockGoals,
+          preferences: {
+            paymentReminders: true,
+            darkModePreview: false,
+          },
         }),
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
     }),

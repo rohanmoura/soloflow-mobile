@@ -5,7 +5,9 @@ export const transactionSchema = z.object({
   amount: z.number().positive('Amount must be greater than zero').max(1000000),
   category: z.string().trim().min(1, 'Choose a category'),
   clientId: z.string().optional(),
+  date: z.string().trim().min(8, 'Use YYYY-MM-DD date'),
   notes: z.string().max(280).optional(),
+  attachmentName: z.string().trim().max(80).optional(),
 });
 
 export const clientSchema = z.object({

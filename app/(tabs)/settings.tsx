@@ -1,6 +1,6 @@
 import { Link, type Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Bell, Download, Moon, RotateCcw } from 'lucide-react-native';
+import { Bell, BriefcaseBusiness, Download, Moon, RotateCcw } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -22,15 +22,16 @@ const trackingOptions = ['Invoices', 'Expenses', 'Savings', 'Tax prep'];
 export default function SettingsScreen() {
   const profile = useSoloFlowStore((state) => state.profile);
   const goals = useSoloFlowStore((state) => state.goals);
+  const preferences = useSoloFlowStore((state) => state.preferences);
   const updateProfile = useSoloFlowStore((state) => state.updateProfile);
+  const updatePreferences = useSoloFlowStore((state) => state.updatePreferences);
+  const prepareMonthlyReport = useSoloFlowStore((state) => state.prepareMonthlyReport);
   const resetDemoData = useSoloFlowStore((state) => state.resetDemoData);
-  const [notifications, setNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
-  const [exportStatus, setExportStatus] = useState('Ready to generate a mock monthly report.');
   const [resetStatus, setResetStatus] = useState('');
 
   function handleExport() {
-    setExportStatus('Mock report prepared for portfolio demo.');
+    prepareMonthlyReport();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }
 
   function handleReset() {
@@ -40,6 +41,11 @@ export default function SettingsScreen() {
 
   function updateCurrency(currency: CurrencyCode) {
     updateProfile({ currency });
+    Haptics.selectionAsync();
+  }
+
+  function togglePreference(key: 'paymentReminders' | 'darkModePreview') {
+    updatePreferences({ [key]: !preferences[key] });
     Haptics.selectionAsync();
   }
 
@@ -119,23 +125,23 @@ export default function SettingsScreen() {
         );
       })}
 
-      <SectionHeader title="Preferences" detail="Mock controls" />
+      <SectionHeader title="Preferences" detail="Saved locally" />
       <SettingRow
         icon={Bell}
         label="Payment reminders"
-        value={notifications ? 'On' : 'Off'}
-        active={notifications}
-        onPress={() => setNotifications((current) => !current)}
+        value={preferences.paymentReminders ? 'On' : 'Off'}
+        active={preferences.paymentReminders}
+        onPress={() => togglePreference('paymentReminders')}
       />
       <SettingRow
         icon={Moon}
         label="Dark mode preview"
-        value={darkMode ? 'On' : 'Off'}
-        active={darkMode}
-        onPress={() => setDarkMode((current) => !current)}
+        value={preferences.darkModePreview ? 'On' : 'Off'}
+        active={preferences.darkModePreview}
+        onPress={() => togglePreference('darkModePreview')}
       />
 
-      <SectionHeader title="Reports" detail="Portfolio mock" />
+      <SectionHeader title="Reports" detail="Local summary" />
       <Card>
         <View style={styles.actionRow}>
           <View style={styles.actionIcon}>
@@ -143,12 +149,27 @@ export default function SettingsScreen() {
           </View>
           <View style={styles.actionCopy}>
             <Text style={styles.goalTitle}>Export monthly report</Text>
-            <Text style={styles.meta}>{exportStatus}</Text>
+            <Text style={styles.meta}>{preferences.lastReportSummary ?? 'Ready to generate a monthly report summary.'}</Text>
           </View>
         </View>
         <Pressable style={styles.setupButton} onPress={handleExport}>
           <Text style={styles.setupButtonText}>Prepare report</Text>
         </Pressable>
+      </Card>
+
+      <SectionHeader title="Portfolio" detail="KMAX proof" />
+      <Card>
+        <View style={styles.actionRow}>
+          <View style={styles.actionIcon}>
+            <BriefcaseBusiness color={colors.primary} size={20} />
+          </View>
+          <View style={styles.actionCopy}>
+            <Text style={styles.goalTitle}>Case study ready</Text>
+            <Text style={styles.meta}>
+              Use this app as KMAX proof for mobile MVPs, finance dashboards, local state, and daily-use product UX.
+            </Text>
+          </View>
+        </View>
       </Card>
 
       <Link href={'/onboarding' as Href} asChild>

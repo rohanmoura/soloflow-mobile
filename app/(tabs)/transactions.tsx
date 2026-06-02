@@ -14,7 +14,7 @@ import { useSoloFlowStore } from '@/store/appStore';
 import { colors, spacing } from '@/theme/tokens';
 import type { MoneyStatus, TransactionType } from '@/types/finance';
 import { formatCurrency } from '@/utils/currency';
-import { formatShortDate } from '@/utils/date';
+import { formatMonthLabel, formatShortDate } from '@/utils/date';
 
 type TypeFilter = 'all' | TransactionType;
 type StatusFilter = 'all' | MoneyStatus;
@@ -25,9 +25,23 @@ const statusFilters: StatusFilter[] = ['all', 'paid', 'pending', 'overdue', 'dra
 export default function TransactionsScreen() {
   const profile = useSoloFlowStore((state) => state.profile);
   const transactions = useSoloFlowStore((state) => state.transactions);
+  const clients = useSoloFlowStore((state) => state.clients);
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [clientFilter, setClientFilter] = useState('all');
+  const [monthFilter, setMonthFilter] = useState('all');
+
+  const categoryFilters = useMemo(() => ['all', ...new Set(transactions.map((transaction) => transaction.category))], [transactions]);
+  const clientFilters = useMemo(
+    () => ['all', ...clients.filter((client) => transactions.some((transaction) => transaction.clientId === client.id)).map((client) => client.id)],
+    [clients, transactions],
+  );
+  const monthFilters = useMemo(
+    () => ['all', ...new Set(transactions.map((transaction) => transaction.date.slice(0, 7)).sort((a, b) => b.localeCompare(a)))],
+    [transactions],
+  );
 
   const filteredTransactions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -40,10 +54,25 @@ export default function TransactionsScreen() {
         transaction.notes?.toLowerCase().includes(normalizedQuery);
       const matchesType = typeFilter === 'all' || transaction.type === typeFilter;
       const matchesStatus = statusFilter === 'all' || transaction.status === statusFilter;
+      const matchesCategory = categoryFilter === 'all' || transaction.category === categoryFilter;
+      const matchesClient = clientFilter === 'all' || transaction.clientId === clientFilter;
+      const matchesMonth = monthFilter === 'all' || transaction.date.slice(0, 7) === monthFilter;
 
-      return matchesQuery && matchesType && matchesStatus;
+      return matchesQuery && matchesType && matchesStatus && matchesCategory && matchesClient && matchesMonth;
     });
-  }, [query, statusFilter, transactions, typeFilter]);
+  }, [categoryFilter, clientFilter, monthFilter, query, statusFilter, transactions, typeFilter]);
+
+  const hasAdvancedFilters = categoryFilter !== 'all' || clientFilter !== 'all' || monthFilter !== 'all';
+
+  function clearAdvancedFilters() {
+    setCategoryFilter('all');
+    setClientFilter('all');
+    setMonthFilter('all');
+  }
+
+  function getClientName(clientId: string) {
+    return clients.find((client) => client.id === clientId)?.name ?? 'Unknown client';
+  }
 
   return (
     <Screen>
@@ -69,6 +98,11 @@ export default function TransactionsScreen() {
       <View style={styles.filterHeader}>
         <SlidersHorizontal color={colors.primary} size={18} />
         <Text style={styles.filterTitle}>Filters</Text>
+        {hasAdvancedFilters ? (
+          <Pressable accessibilityRole="button" onPress={clearAdvancedFilters} style={styles.clearButton}>
+            <Text style={styles.clearText}>Clear</Text>
+          </Pressable>
+        ) : null}
       </View>
       <View style={styles.filterRow}>
         {typeFilters.map((filter) => (
@@ -87,6 +121,42 @@ export default function TransactionsScreen() {
             label={filter === 'all' ? 'All statuses' : filter}
             selected={statusFilter === filter}
             onPress={() => setStatusFilter(filter)}
+          />
+        ))}
+      </View>
+
+      <Text style={styles.filterSubhead}>Category</Text>
+      <View style={styles.filterRow}>
+        {categoryFilters.map((filter) => (
+          <Chip
+            key={filter}
+            label={filter === 'all' ? 'All categories' : filter}
+            selected={categoryFilter === filter}
+            onPress={() => setCategoryFilter(filter)}
+          />
+        ))}
+      </View>
+
+      <Text style={styles.filterSubhead}>Client</Text>
+      <View style={styles.filterRow}>
+        {clientFilters.map((filter) => (
+          <Chip
+            key={filter}
+            label={filter === 'all' ? 'All clients' : getClientName(filter)}
+            selected={clientFilter === filter}
+            onPress={() => setClientFilter(filter)}
+          />
+        ))}
+      </View>
+
+      <Text style={styles.filterSubhead}>Month</Text>
+      <View style={styles.filterRow}>
+        {monthFilters.map((filter) => (
+          <Chip
+            key={filter}
+            label={filter === 'all' ? 'All months' : formatMonthLabel(new Date(`${filter}-01T00:00:00`))}
+            selected={monthFilter === filter}
+            onPress={() => setMonthFilter(filter)}
           />
         ))}
       </View>
@@ -122,7 +192,7 @@ export default function TransactionsScreen() {
         <EmptyState
           icon={WalletCards}
           title="No matching records"
-          message="Try a broader search or switch filters back to all types and statuses."
+          message="Try a broader search or clear type, status, category, client, and month filters."
         />
       )}
     </Screen>
@@ -169,7 +239,28 @@ const styles = StyleSheet.create({
   },
   filterTitle: {
     color: colors.ink,
+    flex: 1,
     fontSize: 14,
+    fontWeight: '900',
+  },
+  filterSubhead: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '900',
+    marginBottom: spacing.sm,
+    textTransform: 'uppercase',
+  },
+  clearButton: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  clearText: {
+    color: colors.ink,
+    fontSize: 12,
     fontWeight: '900',
   },
   row: {

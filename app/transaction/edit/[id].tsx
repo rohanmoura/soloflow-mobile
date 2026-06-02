@@ -16,7 +16,7 @@ import { colors, spacing } from '@/theme/tokens';
 import type { MoneyStatus, TransactionType } from '@/types/finance';
 import { transactionSchema } from '@/utils/validators';
 
-type FormErrors = Partial<Record<'title' | 'amount' | 'category', string>>;
+type FormErrors = Partial<Record<'title' | 'amount' | 'category' | 'date', string>>;
 
 const statuses: MoneyStatus[] = ['paid', 'pending', 'overdue', 'draft'];
 
@@ -33,7 +33,9 @@ export default function EditTransactionScreen() {
   const [category, setCategory] = useState(transaction?.category ?? '');
   const [clientId, setClientId] = useState<string | undefined>(transaction?.clientId);
   const [status, setStatus] = useState<MoneyStatus>(transaction?.status ?? 'paid');
+  const [date, setDate] = useState(transaction?.date ?? new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState(transaction?.notes ?? '');
+  const [attachmentName, setAttachmentName] = useState(transaction?.attachmentName ?? '');
   const [errors, setErrors] = useState<FormErrors>({});
   const [saved, setSaved] = useState(false);
 
@@ -69,14 +71,16 @@ export default function EditTransactionScreen() {
       amount: parsedAmount,
       category,
       clientId,
+      date,
       notes,
+      attachmentName,
     });
 
     if (!result.success) {
       const nextErrors: FormErrors = {};
       result.error.issues.forEach((issue) => {
         const key = issue.path[0];
-        if (key === 'title' || key === 'amount' || key === 'category') {
+        if (key === 'title' || key === 'amount' || key === 'category' || key === 'date') {
           nextErrors[key] = issue.message;
         }
       });
@@ -92,8 +96,10 @@ export default function EditTransactionScreen() {
       currency: profile.currency,
       category: result.data.category,
       clientId: type === 'income' ? clientId : undefined,
+      date: result.data.date,
       status,
       notes: result.data.notes,
+      attachmentName: result.data.attachmentName || undefined,
     });
 
     setSaved(true);
@@ -165,6 +171,8 @@ export default function EditTransactionScreen() {
             ))}
           </View>
 
+          <FormField label="Date" value={date} onChangeText={setDate} error={errors.date} />
+
           <FormField
             label="Notes"
             value={notes}
@@ -172,6 +180,13 @@ export default function EditTransactionScreen() {
             multiline
             placeholder="Optional detail for future review"
             style={styles.notesInput}
+          />
+
+          <FormField
+            label="Attachment name"
+            value={attachmentName}
+            onChangeText={setAttachmentName}
+            placeholder="receipt-may.pdf"
           />
 
           <PrimaryButton label="Save changes" icon={Check} onPress={handleSave} />

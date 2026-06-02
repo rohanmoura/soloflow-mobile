@@ -106,7 +106,7 @@ export default function GoalsScreen() {
       })}
 
       <Card>
-        <Text style={styles.goalTitle}>Coming in v2</Text>
+        <Text style={styles.goalTitle}>History-ready model</Text>
         <Text style={styles.goalMeta}>
           Cloud sync, recurring targets, reminders, and month-by-month history can plug into this same goal model.
         </Text>
