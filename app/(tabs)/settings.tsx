@@ -164,18 +164,23 @@ export default function SettingsScreen() {
         </Pressable>
       </Card>
 
-      <SectionHeader title="Cloud sync" detail={syncStatus.mode === 'cloud' ? 'Connected' : 'V2-ready'} />
+      <SectionHeader title="Cloud sync" detail={syncStatus.mode === 'cloud' ? 'Connected' : 'Ready'} />
       <Card>
         <View style={styles.actionRow}>
           <View style={[styles.actionIcon, syncStatus.mode === 'error' && styles.errorIcon]}>
             <Cloud color={syncStatus.mode === 'error' ? colors.danger : colors.primary} size={20} />
           </View>
           <View style={styles.actionCopy}>
-            <Text style={styles.goalTitle}>Supabase backup</Text>
+            <Text style={styles.goalTitle}>Cloud backup</Text>
             <Text style={styles.meta}>{syncStatus.message}</Text>
             {syncStatus.lastSyncedAt ? <Text style={styles.timestampText}>Last checked {syncStatus.lastSyncedAt.slice(0, 16)}</Text> : null}
           </View>
         </View>
+        <Link href={'/cloud-account' as Href} asChild>
+          <Pressable style={styles.secondarySetupButton}>
+            <Text style={styles.secondarySetupButtonText}>Manage cloud account</Text>
+          </Pressable>
+        </Link>
         <Pressable style={[styles.setupButton, syncStatus.syncing && styles.disabledButton]} onPress={handleCloudSync} disabled={syncStatus.syncing}>
           <Text style={styles.setupButtonText}>{syncStatus.syncing ? 'Syncing...' : 'Run backup check'}</Text>
         </Pressable>
@@ -319,8 +324,20 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     padding: spacing.lg,
   },
+  secondarySetupButton: {
+    alignItems: 'center',
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: 8,
+    marginBottom: spacing.md,
+    padding: spacing.lg,
+  },
   setupButtonText: {
     color: colors.surface,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  secondarySetupButtonText: {
+    color: colors.text,
     fontSize: 15,
     fontWeight: '900',
   },

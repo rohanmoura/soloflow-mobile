@@ -15,7 +15,7 @@ const defaultPreferences: AppPreferences = {
 
 const defaultSyncStatus: SyncStatus = {
   mode: 'local',
-  message: 'Local-first mode. Add Supabase keys to enable cloud backup.',
+  message: 'Local-first mode. Connect a cloud account to enable backup.',
   syncing: false,
 };
 

@@ -62,6 +62,7 @@ function RootLayoutNav() {
     <Stack>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="onboarding/index" options={{ headerShown: false }} />
+      <Stack.Screen name="cloud-account/index" options={{ headerShown: false }} />
       <Stack.Screen name="client/add" options={{ headerShown: false, presentation: 'modal' }} />
       <Stack.Screen name="client/edit/[id]" options={{ headerShown: false, presentation: 'modal' }} />
       <Stack.Screen name="client/[id]" options={{ headerShown: false }} />

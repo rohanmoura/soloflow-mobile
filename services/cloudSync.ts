@@ -22,19 +22,32 @@ export async function pushSnapshotToCloud(snapshot: Omit<CloudSnapshot, 'updated
     return {
       ok: true,
       mode: 'local',
-      message: 'Cloud sync is ready. Add Supabase env keys to enable remote backup.',
+      message: 'Cloud backup is ready. Add cloud environment keys to enable remote backup.',
+      syncedAt,
+    };
+  }
+
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+
+  if (userError || !userData.user) {
+    return {
+      ok: true,
+      mode: 'local',
+      message: 'Sign in to enable secure cloud backup.',
       syncedAt,
     };
   }
 
   const { error } = await supabase.from('soloflow_snapshots').upsert({
-    id: snapshot.profile.id,
+    user_id: userData.user.id,
     profile: snapshot.profile,
     clients: snapshot.clients,
     invoices: snapshot.invoices,
     transactions: snapshot.transactions,
     goals: snapshot.goals,
     updated_at: syncedAt,
+  }, {
+    onConflict: 'user_id',
   });
 
   if (error) {
