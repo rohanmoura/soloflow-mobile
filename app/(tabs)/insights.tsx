@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, Crown, Gauge, Sparkles, WalletCards } from 'lucide-react-native';
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, Crown, Gauge, Globe2, Sparkles, WalletCards } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -14,6 +14,7 @@ import { colors, spacing } from '@/theme/tokens';
 import type { Transaction } from '@/types/finance';
 import { clampPercent } from '@/utils/calculations';
 import { formatCurrency } from '@/utils/currency';
+import { calculateTaxEstimate } from '@/services/reportExport';
 
 type BarPoint = {
   label: string;
@@ -27,6 +28,7 @@ export default function InsightsScreen() {
   const invoices = useSoloFlowStore((state) => state.invoices);
   const clients = useSoloFlowStore((state) => state.clients);
   const insights = useInsightsSummary();
+  const taxEstimate = useMemo(() => calculateTaxEstimate(transactions, profile.currency), [profile.currency, transactions]);
 
   const barSeries = useMemo(() => buildMonthlySeries(transactions), [transactions]);
   const expenseMix = useMemo(() => buildCategoryMix(transactions, 'expense'), [transactions]);
@@ -113,6 +115,36 @@ export default function InsightsScreen() {
         <Text style={styles.cardTitle}>Best month</Text>
         <Text style={styles.bigValue}>{insights.bestMonth}</Text>
         <Text style={styles.meta}>Highest paid income month from local transaction history.</Text>
+      </Card>
+
+      <SectionHeader title="Tax estimate" detail={`${taxEstimate.rate}% planning`} />
+      <Card>
+        <View style={styles.leaderRow}>
+          <View style={styles.crownIcon}>
+            <WalletCards color={colors.warning} size={20} />
+          </View>
+          <View style={styles.leaderCopy}>
+            <Text style={styles.cardTitle}>Estimated set-aside</Text>
+            <Text style={styles.bigValue}>{formatCurrency(taxEstimate.estimatedTax, profile.currency)}</Text>
+            <Text style={styles.meta}>
+              Based on {formatCurrency(taxEstimate.taxableProfit, profile.currency)} taxable profit after paid expenses.
+            </Text>
+          </View>
+        </View>
+      </Card>
+
+      <Card>
+        <View style={styles.leaderRow}>
+          <View style={[styles.crownIcon, styles.currencyIcon]}>
+            <Globe2 color={colors.primary} size={20} />
+          </View>
+          <View style={styles.leaderCopy}>
+            <Text style={styles.cardTitle}>Multi-currency workspace</Text>
+            <Text style={styles.meta}>
+              Current reporting currency is {profile.currency}. Switch it in Settings before sharing reports or planning invoices.
+            </Text>
+          </View>
+        </View>
       </Card>
 
       <SectionHeader title="Client concentration" detail="Paid revenue" />
@@ -436,6 +468,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: spacing.md,
     width: 42,
+  },
+  currencyIcon: {
+    backgroundColor: colors.primarySoft,
   },
   leaderCopy: {
     flex: 1,

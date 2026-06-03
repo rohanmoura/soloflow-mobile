@@ -6,6 +6,8 @@ create table if not exists public.soloflow_snapshots (
   invoices jsonb not null default '[]'::jsonb,
   transactions jsonb not null default '[]'::jsonb,
   goals jsonb not null default '[]'::jsonb,
+  reminders jsonb not null default '[]'::jsonb,
+  preferences jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now(),
   unique (user_id)
 );

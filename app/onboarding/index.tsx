@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Chip } from '@/components/ui/Chip';
+import { FormField } from '@/components/ui/FormField';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Screen } from '@/components/ui/Screen';
 import { useSoloFlowStore } from '@/store/appStore';
@@ -20,6 +21,7 @@ const roles: Array<{ label: string; value: UserRole }> = [
 
 const currencies: CurrencyCode[] = ['USD', 'INR', 'EUR', 'GBP'];
 const preferences = ['income', 'expenses', 'invoices', 'goals', 'clients'];
+const businessTypes = ['Solo service business', 'Creator business', 'Consulting practice', 'Small agency', 'Productized service'];
 
 export default function OnboardingScreen() {
   const profile = useSoloFlowStore((state) => state.profile);
@@ -28,6 +30,7 @@ export default function OnboardingScreen() {
   const [role, setRole] = useState<UserRole>(profile.role);
   const [currency, setCurrency] = useState<CurrencyCode>(profile.currency);
   const [goal, setGoal] = useState(profile.monthlyRevenueGoal);
+  const [businessType, setBusinessType] = useState(profile.businessType);
   const [selectedPreferences, setSelectedPreferences] = useState(profile.trackingPreferences);
 
   function togglePreference(item: string) {
@@ -41,6 +44,7 @@ export default function OnboardingScreen() {
       role,
       currency,
       monthlyRevenueGoal: goal,
+      businessType,
       trackingPreferences: selectedPreferences,
     });
     router.replace('/(tabs)');
@@ -49,7 +53,7 @@ export default function OnboardingScreen() {
   return (
     <Screen>
       <View style={styles.progressWrap}>
-        {[0, 1, 2, 3].map((item) => (
+        {[0, 1, 2, 3, 4].map((item) => (
           <View key={item} style={[styles.progressDot, item <= step && styles.progressActive]} />
         ))}
       </View>
@@ -89,6 +93,23 @@ export default function OnboardingScreen() {
       ) : null}
 
       {step === 3 ? (
+        <>
+          <View style={styles.optionGrid}>
+            {businessTypes.map((item) => (
+              <Chip key={item} label={item} selected={businessType === item} onPress={() => setBusinessType(item)} />
+            ))}
+          </View>
+          <FormField
+            label="Custom business type"
+            value={businessType}
+            onChangeText={setBusinessType}
+            placeholder="Freelance product developer"
+            style={styles.businessInput}
+          />
+        </>
+      ) : null}
+
+      {step === 4 ? (
         <View style={styles.optionGrid}>
           {preferences.map((item) => (
             <Chip
@@ -110,9 +131,9 @@ export default function OnboardingScreen() {
           <View />
         )}
         <PrimaryButton
-          label={step === 3 ? 'Finish setup' : 'Next'}
-          icon={step === 3 ? Check : ChevronRight}
-          onPress={step === 3 ? finish : () => setStep((current) => current + 1)}
+          label={step === 4 ? 'Finish setup' : 'Next'}
+          icon={step === 4 ? Check : ChevronRight}
+          onPress={step === 4 ? finish : () => setStep((current) => current + 1)}
         />
       </View>
     </Screen>
@@ -131,6 +152,10 @@ const copy = [
   {
     title: 'Set a monthly revenue goal',
     subtitle: 'SoloFlow uses this goal to calculate monthly pace and progress.',
+  },
+  {
+    title: 'Describe your business type',
+    subtitle: 'This keeps client and finance labels closer to how you actually work.',
   },
   {
     title: 'Pick what you want to track',
@@ -221,5 +246,8 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 15,
     fontWeight: '900',
+  },
+  businessInput: {
+    marginTop: spacing.lg,
   },
 });

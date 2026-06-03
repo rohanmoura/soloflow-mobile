@@ -5,7 +5,8 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { mockClients, mockGoals, mockInvoices, mockProfile, mockTransactions } from '@/data/mockData';
 import { pullSnapshotFromCloud, pushSnapshotToCloud } from '@/services/cloudSync';
-import type { AppPreferences, Client, Goal, Invoice, SyncStatus, Transaction } from '@/types/finance';
+import { shareMonthlyCsvReport } from '@/services/reportExport';
+import type { AppPreferences, Client, Goal, Invoice, PaymentReminder, SyncStatus, Transaction } from '@/types/finance';
 import { calculateClientSummaries, calculateDashboard, calculateInsights, syncGoalProgress } from '@/utils/calculations';
 
 const defaultPreferences: AppPreferences = {
@@ -27,6 +28,7 @@ type SoloFlowState = {
   invoices: Invoice[];
   transactions: Transaction[];
   goals: Goal[];
+  reminders: PaymentReminder[];
   preferences: AppPreferences;
   syncStatus: SyncStatus;
   addClient: (client: Omit<Client, 'id' | 'avatar' | 'createdAt'>) => void;
@@ -42,6 +44,16 @@ type SoloFlowState = {
   markInvoicePaid: (invoiceId: string) => void;
   updatePreferences: (updates: Partial<AppPreferences>) => void;
   prepareMonthlyReport: () => void;
+  shareCsvReport: () => Promise<string>;
+  queueInvoiceReminder: (invoiceId: string) => void;
+  markReminderSent: (reminderId: string) => void;
+  deleteReminder: (reminderId: string) => void;
+  generateRecurringMonth: (template?: {
+    incomeTitle: string;
+    incomeAmount: number;
+    expenseTitle: string;
+    expenseAmount: number;
+  }) => void;
   syncToCloud: () => Promise<void>;
   restoreFromCloud: () => Promise<void>;
   resetDemoData: () => void;
@@ -57,6 +69,7 @@ export const useSoloFlowStore = create<SoloFlowState>()(
       invoices: mockInvoices,
       transactions: mockTransactions,
       goals: mockGoals,
+      reminders: [],
       preferences: defaultPreferences,
       syncStatus: defaultSyncStatus,
       addClient: (client) =>
@@ -131,6 +144,7 @@ export const useSoloFlowStore = create<SoloFlowState>()(
           return {
             invoices,
             transactions: nextTransactions,
+            reminders: state.reminders.filter((reminder) => reminder.invoiceId !== invoiceId),
             goals: syncGoalProgress(state.goals, state.profile, nextTransactions),
           };
         }),
@@ -246,6 +260,7 @@ export const useSoloFlowStore = create<SoloFlowState>()(
           return {
             invoices,
             transactions: nextTransactions,
+            reminders: state.reminders.filter((reminder) => reminder.invoiceId !== invoiceId),
             goals: syncGoalProgress(state.goals, state.profile, nextTransactions),
           };
         }),
@@ -267,6 +282,135 @@ export const useSoloFlowStore = create<SoloFlowState>()(
               ...defaultPreferences,
               ...state.preferences,
               lastReportSummary: summary,
+            },
+          };
+        }),
+      shareCsvReport: async () => {
+        const state = useSoloFlowStore.getState();
+        const report = await shareMonthlyCsvReport({
+          profile: state.profile,
+          transactions: state.transactions,
+          invoices: state.invoices,
+          clients: state.clients,
+        });
+
+        set((currentState) => ({
+          preferences: {
+            ...defaultPreferences,
+            ...currentState.preferences,
+            lastCsvReport: report.filename,
+          },
+        }));
+
+        return report.csv;
+      },
+      queueInvoiceReminder: (invoiceId) =>
+        set((state) => {
+          const invoice = state.invoices.find((item) => item.id === invoiceId);
+
+          if (!invoice) {
+            return {};
+          }
+
+          const client = state.clients.find((item) => item.id === invoice.clientId);
+          const reminderExists = state.reminders.some((reminder) => reminder.invoiceId === invoiceId && reminder.status === 'queued');
+
+          if (reminderExists) {
+            return {};
+          }
+
+          return {
+            reminders: [
+              {
+                id: `reminder-${invoiceId}-${Date.now()}`,
+                invoiceId,
+                clientId: invoice.clientId,
+                invoiceNumber: invoice.invoiceNumber,
+                clientName: client?.name ?? 'Unknown client',
+                amount: invoice.amount,
+                currency: invoice.currency,
+                dueDate: invoice.dueDate,
+                queuedAt: new Date().toISOString(),
+                status: 'queued',
+              },
+              ...state.reminders,
+            ],
+          };
+        }),
+      markReminderSent: (reminderId) =>
+        set((state) => ({
+          reminders: state.reminders.map((reminder) =>
+            reminder.id === reminderId
+              ? {
+                  ...reminder,
+                  status: 'sent',
+                  sentAt: new Date().toISOString(),
+                }
+              : reminder,
+          ),
+        })),
+      deleteReminder: (reminderId) =>
+        set((state) => ({
+          reminders: state.reminders.filter((reminder) => reminder.id !== reminderId),
+        })),
+      generateRecurringMonth: (template) =>
+        set((state) => {
+          const month = new Date().toISOString().slice(0, 7);
+          const hasRecurring = state.transactions.some((transaction) => transaction.id.startsWith(`recurring-${month}`));
+          const incomeTitle = template?.incomeTitle.trim() || 'Monthly retainer income';
+          const expenseTitle = template?.expenseTitle.trim() || 'Monthly software tools';
+          const incomeAmount = Math.max(1, Math.round(template?.incomeAmount ?? 1200));
+          const expenseAmount = Math.max(1, Math.round(template?.expenseAmount ?? 160));
+
+          if (hasRecurring) {
+            return {
+              preferences: {
+                ...defaultPreferences,
+                ...state.preferences,
+                lastReportSummary: 'Recurring items for this month already exist.',
+              },
+            };
+          }
+
+          const timestamp = new Date().toISOString();
+          const nextTransactions: Transaction[] = [
+            {
+              id: `recurring-${month}-retainer`,
+              title: incomeTitle,
+              type: 'income',
+              amount: incomeAmount,
+              currency: state.profile.currency,
+              category: 'Retainer',
+              clientId: state.clients[0]?.id,
+              date: `${month}-01`,
+              status: 'pending',
+              notes: 'Generated from recurring monthly setup.',
+              createdAt: timestamp,
+              updatedAt: timestamp,
+            },
+            {
+              id: `recurring-${month}-software`,
+              title: expenseTitle,
+              type: 'expense',
+              amount: expenseAmount,
+              currency: state.profile.currency,
+              category: 'Software',
+              date: `${month}-02`,
+              status: 'pending',
+              notes: 'Generated from recurring monthly setup.',
+              createdAt: timestamp,
+              updatedAt: timestamp,
+            },
+            ...state.transactions,
+          ];
+
+          return {
+            transactions: nextTransactions,
+            goals: syncGoalProgress(state.goals, state.profile, nextTransactions),
+            preferences: {
+              ...defaultPreferences,
+              ...state.preferences,
+              lastReportSummary: 'Recurring items generated for this month.',
             },
           };
         }),
@@ -292,6 +436,11 @@ export const useSoloFlowStore = create<SoloFlowState>()(
             invoices: result.snapshot.invoices,
             transactions: result.snapshot.transactions,
             goals: result.snapshot.goals,
+            reminders: result.snapshot.reminders,
+            preferences: {
+              ...defaultPreferences,
+              ...result.snapshot.preferences,
+            },
             syncStatus: {
               mode: result.mode,
               message: result.message,
@@ -318,6 +467,7 @@ export const useSoloFlowStore = create<SoloFlowState>()(
           invoices: mockInvoices,
           transactions: mockTransactions,
           goals: mockGoals,
+          reminders: [],
           preferences: defaultPreferences,
           syncStatus: defaultSyncStatus,
         }),
@@ -337,6 +487,7 @@ export const useSoloFlowStore = create<SoloFlowState>()(
             ...state.syncStatus,
             syncing: false,
           };
+          state.reminders = state.reminders ?? [];
         }
         state?.setHasHydrated(true);
       },
@@ -353,7 +504,8 @@ useSoloFlowStore.subscribe((state, previousState) => {
     state.clients !== previousState.clients ||
     state.invoices !== previousState.invoices ||
     state.transactions !== previousState.transactions ||
-    state.goals !== previousState.goals;
+    state.goals !== previousState.goals ||
+    state.reminders !== previousState.reminders;
 
   if (!changedFinanceData) {
     return;
@@ -399,6 +551,8 @@ async function backupCurrentState(source: 'manual' | 'auto') {
     invoices: snapshot.invoices,
     transactions: snapshot.transactions,
     goals: snapshot.goals,
+    reminders: snapshot.reminders,
+    preferences: snapshot.preferences,
   });
 
   useSoloFlowStore.setState({

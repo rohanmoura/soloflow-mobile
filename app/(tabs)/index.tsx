@@ -31,13 +31,15 @@ export default function HomeScreen() {
   const dashboard = useDashboardSummary();
   const recentTransactions = transactions.slice(0, 3);
   const nextInvoice = invoices.find((invoice) => invoice.status === 'overdue') ?? invoices.find((invoice) => invoice.status === 'pending');
+  const initials = getInitials(profile.name);
+  const setupProgress = getSetupProgress(profile);
 
   return (
     <Screen>
       <View style={styles.topBar}>
         <View style={styles.profileRow}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>KM</Text>
+            <Text style={styles.avatarText}>{initials}</Text>
           </View>
           <View>
           <Text style={styles.month}>{formatMonthLabel(new Date(`${dashboard.month}-01T00:00:00`))}</Text>
@@ -45,7 +47,7 @@ export default function HomeScreen() {
           </View>
         </View>
         <View style={styles.setupPill}>
-          <Text style={styles.setupText}>92%</Text>
+          <Text style={styles.setupText}>{setupProgress}%</Text>
         </View>
       </View>
 
@@ -202,6 +204,31 @@ export default function HomeScreen() {
       ))}
     </Screen>
   );
+}
+
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'SF';
+}
+
+function getSetupProgress(profile: ReturnType<typeof useSoloFlowStore.getState>['profile']) {
+  const checks = [
+    profile.name,
+    profile.role,
+    profile.currency,
+    profile.businessType,
+    profile.monthlyRevenueGoal > 0,
+    profile.savingsGoal > 0,
+    profile.expenseLimit > 0,
+    profile.trackingPreferences.length > 0,
+    profile.onboardingCompleted,
+  ];
+
+  return Math.round((checks.filter(Boolean).length / checks.length) * 100);
 }
 
 type StatTileProps = {

@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { ArrowLeft, Cloud, DownloadCloud, LogOut, Mail, UploadCloud } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { Card } from '@/components/ui/Card';
@@ -76,8 +76,21 @@ export default function CloudAccountScreen() {
   }
 
   async function handleRestore() {
-    await restoreFromCloud();
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert(
+      'Restore latest backup?',
+      'This replaces the current local workspace with your latest saved backup.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Restore',
+          style: 'destructive',
+          onPress: async () => {
+            await restoreFromCloud();
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          },
+        },
+      ],
+    );
   }
 
   return (

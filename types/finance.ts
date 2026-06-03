@@ -45,6 +45,7 @@ export type Transaction = {
   status: MoneyStatus;
   notes?: string;
   attachmentName?: string;
+  attachmentUri?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -96,6 +97,20 @@ export type Goal = {
   createdAt: string;
 };
 
+export type PaymentReminder = {
+  id: string;
+  invoiceId: string;
+  clientId: string;
+  invoiceNumber: string;
+  clientName: string;
+  amount: number;
+  currency: CurrencyCode;
+  dueDate: string;
+  queuedAt: string;
+  sentAt?: string;
+  status: 'queued' | 'sent';
+};
+
 export type ClientSummary = Client & {
   totalBilled: number;
   totalPaid: number;
@@ -121,6 +136,7 @@ export type AppPreferences = {
   darkModePreview: boolean;
   autoCloudBackup: boolean;
   lastReportSummary?: string;
+  lastCsvReport?: string;
 };
 
 export type SyncMode = 'local' | 'cloud' | 'error';

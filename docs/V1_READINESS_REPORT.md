@@ -1,66 +1,62 @@
-# SoloFlow Mobile V1 Readiness Report
+# SoloFlow Mobile Readiness Report
 
-## V1 Status
+## Status
 
-SoloFlow Mobile v1 is complete for portfolio use.
+SoloFlow Mobile is complete for portfolio demo use.
 
-## Verified V1 Scope
+## Verified Scope
 
-- Expo React Native app with TypeScript
-- Expo Router navigation
-- first-launch onboarding gate
-- custom bottom tab navigation
-- dashboard with calculated finance totals
-- local mock data
-- AsyncStorage persistence
-- hydration/loading screen
-- add/edit/delete transactions
-- transaction search and filters
-- date and attachment fields for transactions
-- clients list/detail
-- add/edit clients
-- invoices list/detail
-- add/edit invoices
-- mark invoice as paid
-- paid invoice to income transaction sync
-- insights screen with chart-style visuals
-- goals screen with editable targets
-- settings with persisted preferences
-- generated monthly report summary
-- empty states, validation states, and success states
-- KMAX case study draft and demo checklist
+- Expo React Native app with TypeScript.
+- Expo Router navigation and custom bottom tabs.
+- First-launch onboarding gate.
+- Calculated dashboard totals.
+- Local mock data with AsyncStorage persistence.
+- Add/edit/delete transactions.
+- Transaction search, filters, and long-press action menu.
+- Native document picker for transaction attachments.
+- Clients list/detail and add/edit client flows.
+- Invoices list/detail and add/edit invoice flows.
+- Mark invoice as paid and sync paid invoices into income activity.
+- Invoice PDF export through native share sheet.
+- Reminder queue with mark-sent and delete actions.
+- Recurring monthly setup with custom income/expense templates.
+- Insights screen with chart-style summaries and tax estimate planning.
+- Goals screen with editable targets and goal history cards.
+- Settings with profile controls, report export, CSV sharing, cloud account, backup/restore, and reset demo data.
+- Cloud backup/restore snapshot flow with reminders and preferences.
+- Case study draft and portfolio QA checklist.
 
 ## Manual Android QA Checklist
 
-- Onboarding screens fit on small Android display
-- Home dashboard numbers fit without clipping
-- Floating tab bar hides fully while scrolling
-- Floating tab bar does not cover final content when idle
-- Add/edit transaction forms scroll above keyboard
-- Transaction filters wrap cleanly
-- Client cards fit long names/status badges
-- Invoice cards fit amount/date/status
-- Insights chart cards fit without text overlap
-- Settings controls and report summary wrap cleanly
+- Onboarding screens fit on small Android display.
+- Home dashboard numbers fit without clipping.
+- Floating tab bar hides fully while scrolling.
+- Floating tab bar does not cover final content when idle.
+- Add/edit transaction forms scroll above keyboard.
+- Transaction filters wrap cleanly.
+- Long-press action menu is easy to trigger and use.
+- Client cards fit long names/status badges.
+- Invoice cards fit amount/date/status.
+- Insights chart cards fit without text overlap.
+- Goals history cards fit on the target phone.
+- Settings controls and report summary wrap cleanly.
+- Cloud restore warning appears before restore.
 
-## V1 Known Boundaries
+## Current Boundaries
 
-- Report export is an in-app generated summary, not a downloaded CSV/PDF file.
-- Reminder action queues an in-app confirmation state, not a real push notification.
-- Dark mode preview is persisted as a preference flag, not a full theme switch.
-- Bank connections, cloud sync, auth, real invoice files, and push reminders are intentionally v2.
+These are intentionally outside portfolio scope:
 
-## V2 Start Criteria
+- Real push/email reminder delivery.
+- Real bank account linking.
+- Cloud file upload/storage for attachments.
+- Production conflict merge flow.
+- Live exchange-rate conversion.
+- Jurisdiction-specific tax calculations.
 
-Start v2 after screenshots/demo are captured and the case study draft is finalized.
+## Verification Command
 
-V2 should focus on:
+Run from `soloflow-mobile`:
 
-- Supabase auth
-- Supabase database and row-level security
-- cloud sync
-- PDF/CSV exports
-- push payment reminders
-- recurring transactions
-- multi-currency conversion
-- tax estimate module
+```text
+npm run verify
+```

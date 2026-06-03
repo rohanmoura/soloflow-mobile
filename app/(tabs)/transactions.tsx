@@ -1,5 +1,6 @@
-import { Link, type Href } from 'expo-router';
-import { Search, SlidersHorizontal, WalletCards } from 'lucide-react-native';
+import { router, type Href } from 'expo-router';
+import * as Haptics from 'expo-haptics';
+import { Pencil, Search, SlidersHorizontal, Trash2, WalletCards } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -26,12 +27,14 @@ export default function TransactionsScreen() {
   const profile = useSoloFlowStore((state) => state.profile);
   const transactions = useSoloFlowStore((state) => state.transactions);
   const clients = useSoloFlowStore((state) => state.clients);
+  const deleteTransaction = useSoloFlowStore((state) => state.deleteTransaction);
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [clientFilter, setClientFilter] = useState('all');
   const [monthFilter, setMonthFilter] = useState('all');
+  const [activeActionId, setActiveActionId] = useState<string | null>(null);
 
   const categoryFilters = useMemo(() => ['all', ...new Set(transactions.map((transaction) => transaction.category))], [transactions]);
   const clientFilters = useMemo(
@@ -72,6 +75,17 @@ export default function TransactionsScreen() {
 
   function getClientName(clientId: string) {
     return clients.find((client) => client.id === clientId)?.name ?? 'Unknown client';
+  }
+
+  function showActions(transactionId: string) {
+    setActiveActionId((currentId) => (currentId === transactionId ? null : transactionId));
+    Haptics.selectionAsync();
+  }
+
+  function handleDelete(transactionId: string) {
+    deleteTransaction(transactionId);
+    setActiveActionId(null);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }
 
   return (
@@ -165,8 +179,10 @@ export default function TransactionsScreen() {
 
       {filteredTransactions.length > 0 ? (
         filteredTransactions.map((transaction) => (
-          <Link href={`/transaction/${transaction.id}` as Href} key={transaction.id} asChild>
-            <Pressable>
+          <Pressable
+            key={transaction.id}
+            onLongPress={() => showActions(transaction.id)}
+            onPress={() => router.push(`/transaction/${transaction.id}` as Href)}>
               <Card>
                 <View style={styles.row}>
                   <View style={styles.copy}>
@@ -184,9 +200,26 @@ export default function TransactionsScreen() {
                   <Badge label={transaction.status} status={transaction.status} />
                   <Badge label={transaction.type} />
                 </View>
+                {activeActionId === transaction.id ? (
+                  <View style={styles.actionMenu}>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => router.push(`/transaction/edit/${transaction.id}` as Href)}
+                      style={styles.actionButton}>
+                      <Pencil color={colors.primary} size={16} />
+                      <Text style={styles.actionText}>Edit</Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => handleDelete(transaction.id)}
+                      style={[styles.actionButton, styles.deleteAction]}>
+                      <Trash2 color={colors.danger} size={16} />
+                      <Text style={[styles.actionText, styles.deleteText]}>Delete</Text>
+                    </Pressable>
+                  </View>
+                ) : null}
               </Card>
-            </Pressable>
-          </Link>
+          </Pressable>
         ))
       ) : (
         <EmptyState
@@ -299,5 +332,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
+  },
+  actionMenu: {
+    borderTopColor: colors.border,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+  },
+  actionButton: {
+    alignItems: 'center',
+    backgroundColor: colors.primarySoft,
+    borderRadius: 8,
+    flex: 1,
+    flexDirection: 'row',
+    gap: spacing.sm,
+    justifyContent: 'center',
+    minHeight: 42,
+  },
+  deleteAction: {
+    backgroundColor: colors.dangerSoft,
+  },
+  actionText: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  deleteText: {
+    color: colors.danger,
   },
 });

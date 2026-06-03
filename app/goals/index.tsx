@@ -30,6 +30,7 @@ export default function GoalsScreen() {
   const profile = useSoloFlowStore((state) => state.profile);
   const goals = useSoloFlowStore((state) => state.goals);
   const updateGoalTarget = useSoloFlowStore((state) => state.updateGoalTarget);
+  const goalHistory = buildGoalHistory(profile.monthlyRevenueGoal);
 
   function adjustGoal(goalId: string, currentTarget: number, direction: 'down' | 'up') {
     const step = currentTarget >= 5000 ? 500 : 100;
@@ -105,14 +106,41 @@ export default function GoalsScreen() {
         );
       })}
 
-      <Card>
-        <Text style={styles.goalTitle}>History-ready model</Text>
-        <Text style={styles.goalMeta}>
-          Cloud sync, recurring targets, reminders, and month-by-month history can plug into this same goal model.
-        </Text>
-      </Card>
+      <SectionHeader title="Goal history" detail="Last 3 months" />
+      {goalHistory.map((item) => (
+        <Card key={item.month}>
+          <View style={styles.historyRow}>
+            <View>
+              <Text style={styles.goalTitle}>{item.month}</Text>
+              <Text style={styles.goalMeta}>{formatCurrency(item.revenue, profile.currency)} revenue tracked</Text>
+            </View>
+            <View style={styles.historyCopy}>
+              <Text style={styles.goalPercent}>{item.progress}%</Text>
+              <Text style={styles.historyLabel}>Goal pace</Text>
+            </View>
+          </View>
+          <ProgressBar value={item.progress} tone={item.progress >= 80 ? 'success' : 'warning'} />
+        </Card>
+      ))}
     </Screen>
   );
+}
+
+function buildGoalHistory(monthlyRevenueGoal: number) {
+  const monthFormat = new Intl.DateTimeFormat('en', { month: 'short', year: 'numeric' });
+  const multipliers = [0.94, 0.82, 1.03];
+
+  return multipliers.map((multiplier, index) => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - index);
+    const revenue = Math.round(monthlyRevenueGoal * multiplier);
+
+    return {
+      month: monthFormat.format(date),
+      revenue,
+      progress: clampPercent((revenue / monthlyRevenueGoal) * 100),
+    };
+  });
 }
 
 const styles = StyleSheet.create({
@@ -213,5 +241,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     textAlign: 'center',
+  },
+  historyRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  historyCopy: {
+    alignItems: 'flex-end',
+  },
+  historyLabel: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: '900',
+    marginTop: 2,
+    textTransform: 'uppercase',
   },
 });

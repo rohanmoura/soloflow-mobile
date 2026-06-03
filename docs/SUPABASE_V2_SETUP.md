@@ -15,20 +15,24 @@ Restart Expo after changing env values:
 npx expo start -c
 ```
 
-## SQL File
+## SQL Files
 
-Run this file in the Supabase SQL editor before testing cloud backup:
+The SQL has already been run for the current project. For a fresh project, run these files in order in the SQL editor:
 
 ```text
 supabase/sql/001_soloflow_cloud_snapshots.sql
+supabase/sql/002_add_reminders_to_snapshots.sql
+supabase/sql/003_add_preferences_to_snapshots.sql
 ```
 
-The SQL creates:
+The SQL creates and updates:
 
 - `public.soloflow_snapshots`
 - user-owned backup rows
 - row level security policies
 - indexes for `user_id` and `updated_at`
+- reminder queue backup support
+- preference backup support
 
 ## Current V2 Behavior
 
@@ -37,17 +41,17 @@ The SQL creates:
 - Cloud backup only writes after a signed-in account exists.
 - Restore latest backup pulls the signed-in account snapshot into local state.
 - Auto backup runs after local finance changes once the first cloud backup succeeds.
+- Reminder queue, CSV report status, and recurring transaction state stay local-first and backup-ready.
 - If env keys or sign-in are missing, the app stays local-first.
 
 ## Test Flow
 
-1. Run `supabase/sql/001_soloflow_cloud_snapshots.sql` in the SQL editor.
-2. Restart Expo with `npx expo start -c`.
-3. Open Settings > Manage cloud account.
-4. Create a cloud account or sign in.
-5. Return to Settings and run backup.
-6. Change local demo data to verify automatic backup.
-7. Use Restore latest backup to verify the restore path.
+1. Restart Expo with `npx expo start -c`.
+2. Open Settings > Manage cloud account.
+3. Create a cloud account or sign in.
+4. Return to Settings and run backup.
+5. Change local demo data to verify automatic backup.
+6. Use Restore latest backup to verify the restore path.
 
 ## Google Sign-In
 

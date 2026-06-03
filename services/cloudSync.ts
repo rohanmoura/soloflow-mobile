@@ -1,5 +1,5 @@
 import { isSupabaseConfigured, supabase } from '@/services/supabaseClient';
-import type { Client, Goal, Invoice, Transaction, UserProfile } from '@/types/finance';
+import type { AppPreferences, Client, Goal, Invoice, PaymentReminder, Transaction, UserProfile } from '@/types/finance';
 
 export type CloudSnapshot = {
   profile: UserProfile;
@@ -7,6 +7,8 @@ export type CloudSnapshot = {
   invoices: Invoice[];
   transactions: Transaction[];
   goals: Goal[];
+  reminders: PaymentReminder[];
+  preferences: AppPreferences;
   updatedAt: string;
 };
 
@@ -50,6 +52,8 @@ export async function pushSnapshotToCloud(snapshot: Omit<CloudSnapshot, 'updated
     invoices: snapshot.invoices,
     transactions: snapshot.transactions,
     goals: snapshot.goals,
+    reminders: snapshot.reminders,
+    preferences: snapshot.preferences,
     updated_at: syncedAt,
   }, {
     onConflict: 'user_id',
@@ -59,7 +63,7 @@ export async function pushSnapshotToCloud(snapshot: Omit<CloudSnapshot, 'updated
     return {
       ok: false,
       mode: 'error',
-      message: error.message,
+      message: 'Backup failed. Check account setup and try again.',
       syncedAt,
     };
   }
@@ -97,7 +101,7 @@ export async function pullSnapshotFromCloud(): Promise<CloudRestoreResult> {
 
   const { data, error } = await supabase
     .from('soloflow_snapshots')
-    .select('profile, clients, invoices, transactions, goals, updated_at')
+    .select('profile, clients, invoices, transactions, goals, reminders, preferences, updated_at')
     .eq('user_id', userData.user.id)
     .maybeSingle();
 
@@ -105,7 +109,7 @@ export async function pullSnapshotFromCloud(): Promise<CloudRestoreResult> {
     return {
       ok: false,
       mode: 'error',
-      message: error.message,
+      message: 'Restore failed. Check account setup and try again.',
       syncedAt,
     };
   }
@@ -130,6 +134,8 @@ export async function pullSnapshotFromCloud(): Promise<CloudRestoreResult> {
       invoices: data.invoices as CloudSnapshot['invoices'],
       transactions: data.transactions as CloudSnapshot['transactions'],
       goals: data.goals as CloudSnapshot['goals'],
+      reminders: (data.reminders ?? []) as CloudSnapshot['reminders'],
+      preferences: (data.preferences ?? {}) as CloudSnapshot['preferences'],
       updatedAt: data.updated_at as string,
     },
   };

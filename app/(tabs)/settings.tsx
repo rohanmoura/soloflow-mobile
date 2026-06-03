@@ -1,8 +1,8 @@
 import { Link, type Href } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Bell, BriefcaseBusiness, Cloud, Download, Moon, RefreshCw, RotateCcw } from 'lucide-react-native';
+import { Bell, Cloud, Download, Landmark, RefreshCw, Repeat2, RotateCcw, Table2, UserPen } from 'lucide-react-native';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/ui/AppHeader';
 import { Card } from '@/components/ui/Card';
@@ -24,16 +24,24 @@ export default function SettingsScreen() {
   const goals = useSoloFlowStore((state) => state.goals);
   const preferences = useSoloFlowStore((state) => state.preferences);
   const syncStatus = useSoloFlowStore((state) => state.syncStatus);
+  const reminders = useSoloFlowStore((state) => state.reminders);
   const updateProfile = useSoloFlowStore((state) => state.updateProfile);
   const updatePreferences = useSoloFlowStore((state) => state.updatePreferences);
   const prepareMonthlyReport = useSoloFlowStore((state) => state.prepareMonthlyReport);
+  const shareCsvReport = useSoloFlowStore((state) => state.shareCsvReport);
   const syncToCloud = useSoloFlowStore((state) => state.syncToCloud);
   const restoreFromCloud = useSoloFlowStore((state) => state.restoreFromCloud);
   const resetDemoData = useSoloFlowStore((state) => state.resetDemoData);
   const [resetStatus, setResetStatus] = useState('');
+  const initials = getInitials(profile.name);
 
   function handleExport() {
     prepareMonthlyReport();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
+
+  async function handleCsvExport() {
+    await shareCsvReport();
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }
 
@@ -43,8 +51,21 @@ export default function SettingsScreen() {
   }
 
   async function handleCloudRestore() {
-    await restoreFromCloud();
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert(
+      'Restore latest backup?',
+      'This replaces the current local workspace with your latest saved backup.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Restore',
+          style: 'destructive',
+          onPress: async () => {
+            await restoreFromCloud();
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          },
+        },
+      ],
+    );
   }
 
   function handleReset() {
@@ -57,7 +78,7 @@ export default function SettingsScreen() {
     Haptics.selectionAsync();
   }
 
-  function togglePreference(key: 'paymentReminders' | 'darkModePreview' | 'autoCloudBackup') {
+  function togglePreference(key: 'paymentReminders' | 'autoCloudBackup') {
     updatePreferences({ [key]: !preferences[key] });
     Haptics.selectionAsync();
   }
@@ -83,7 +104,7 @@ export default function SettingsScreen() {
       <Card tone="strong">
         <View style={styles.profileRow}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>KM</Text>
+            <Text style={styles.avatarText}>{initials}</Text>
           </View>
           <View>
             <Text style={styles.profileName}>{profile.name}</Text>
@@ -92,6 +113,12 @@ export default function SettingsScreen() {
         </View>
         <Text style={styles.meta}>Currency: {profile.currency}</Text>
         <Text style={styles.meta}>Tracking: {profile.trackingPreferences.join(', ')}</Text>
+        <Link href={'/profile/edit' as Href} asChild>
+          <Pressable style={styles.profileEditButton}>
+            <UserPen color={colors.primary} size={17} />
+            <Text style={styles.profileEditText}>Edit profile</Text>
+          </Pressable>
+        </Link>
       </Card>
 
       <SectionHeader title="Profile controls" detail="Saved locally" />
@@ -146,14 +173,6 @@ export default function SettingsScreen() {
         active={preferences.paymentReminders}
         onPress={() => togglePreference('paymentReminders')}
       />
-      <SettingRow
-        icon={Moon}
-        label="Dark mode preview"
-        value={preferences.darkModePreview ? 'On' : 'Off'}
-        active={preferences.darkModePreview}
-        onPress={() => togglePreference('darkModePreview')}
-      />
-
       <SectionHeader title="Reports" detail="Local summary" />
       <Card>
         <View style={styles.actionRow}>
@@ -168,6 +187,60 @@ export default function SettingsScreen() {
         <Pressable style={styles.setupButton} onPress={handleExport}>
           <Text style={styles.setupButtonText}>Prepare report</Text>
         </Pressable>
+        <Pressable style={styles.secondarySetupButton} onPress={handleCsvExport}>
+          <View style={styles.inlineButtonRow}>
+            <Table2 color={colors.text} size={17} />
+            <Text style={styles.secondarySetupButtonText}>Share CSV report</Text>
+          </View>
+        </Pressable>
+        {preferences.lastCsvReport ? <Text style={styles.timestampText}>Last CSV {preferences.lastCsvReport}</Text> : null}
+      </Card>
+
+      <SectionHeader title="Automation" detail="V2 workflow" />
+      <Card>
+        <View style={styles.actionRow}>
+          <View style={styles.actionIcon}>
+            <Repeat2 color={colors.primary} size={20} />
+          </View>
+          <View style={styles.actionCopy}>
+            <Text style={styles.goalTitle}>Recurring month setup</Text>
+            <Text style={styles.meta}>Create this month's repeat income and expense drafts from your own template.</Text>
+          </View>
+        </View>
+        <Link href={'/recurring' as Href} asChild>
+          <Pressable style={styles.setupButton}>
+            <Text style={styles.setupButtonText}>Open recurring setup</Text>
+          </Pressable>
+        </Link>
+      </Card>
+
+      <Card>
+        <View style={styles.actionRow}>
+          <View style={styles.actionIcon}>
+            <Bell color={colors.primary} size={20} />
+          </View>
+          <View style={styles.actionCopy}>
+            <Text style={styles.goalTitle}>Reminder queue</Text>
+            <Text style={styles.meta}>{reminders.length} invoice follow-ups queued from invoice detail screens.</Text>
+          </View>
+        </View>
+        <Link href={'/reminders' as Href} asChild>
+          <Pressable style={styles.secondarySetupButton}>
+            <Text style={styles.secondarySetupButtonText}>Open reminder queue</Text>
+          </Pressable>
+        </Link>
+      </Card>
+
+      <Card>
+        <View style={styles.actionRow}>
+          <View style={styles.actionIcon}>
+            <Landmark color={colors.primary} size={20} />
+          </View>
+          <View style={styles.actionCopy}>
+            <Text style={styles.goalTitle}>Bank import plan</Text>
+            <Text style={styles.meta}>Manual tracking stays active. A guided import flow can be added when account linking is ready.</Text>
+          </View>
+        </View>
       </Card>
 
       <SectionHeader title="Cloud sync" detail={syncStatus.mode === 'cloud' ? 'Connected' : 'Ready'} />
@@ -209,24 +282,10 @@ export default function SettingsScreen() {
         onPress={() => togglePreference('autoCloudBackup')}
       />
 
-      <SectionHeader title="Portfolio" detail="KMAX proof" />
-      <Card>
-        <View style={styles.actionRow}>
-          <View style={styles.actionIcon}>
-            <BriefcaseBusiness color={colors.primary} size={20} />
-          </View>
-          <View style={styles.actionCopy}>
-            <Text style={styles.goalTitle}>Case study ready</Text>
-            <Text style={styles.meta}>
-              Use this app as KMAX proof for mobile MVPs, finance dashboards, local state, and daily-use product UX.
-            </Text>
-          </View>
-        </View>
-      </Card>
-
+      <SectionHeader title="Setup" detail="Profile flow" />
       <Link href={'/onboarding' as Href} asChild>
         <Pressable style={styles.setupButton}>
-          <Text style={styles.setupButtonText}>Preview onboarding</Text>
+          <Text style={styles.setupButtonText}>Update onboarding setup</Text>
         </Pressable>
       </Link>
 
@@ -237,6 +296,15 @@ export default function SettingsScreen() {
       {resetStatus ? <Text style={styles.statusText}>{resetStatus}</Text> : null}
     </Screen>
   );
+}
+
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'SF';
 }
 
 function SettingRow({
@@ -295,6 +363,22 @@ const styles = StyleSheet.create({
   profileName: {
     color: colors.ink,
     fontSize: 18,
+    fontWeight: '900',
+  },
+  profileEditButton: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: colors.primarySoft,
+    borderRadius: 8,
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  profileEditText: {
+    color: colors.primary,
+    fontSize: 14,
     fontWeight: '900',
   },
   meta: {

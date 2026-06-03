@@ -8,6 +8,7 @@ export const transactionSchema = z.object({
   date: z.string().trim().min(8, 'Use YYYY-MM-DD date'),
   notes: z.string().max(280).optional(),
   attachmentName: z.string().trim().max(80).optional(),
+  attachmentUri: z.string().trim().max(500).optional(),
 });
 
 export const clientSchema = z.object({

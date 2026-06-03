@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Check, X } from 'lucide-react-native';
+import { Check, Paperclip, X } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -11,6 +11,7 @@ import { FormField } from '@/components/ui/FormField';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Screen } from '@/components/ui/Screen';
 import { expenseCategories, incomeCategories } from '@/constants/financeOptions';
+import { pickAttachment } from '@/services/attachmentPicker';
 import { useSoloFlowStore } from '@/store/appStore';
 import { colors, spacing } from '@/theme/tokens';
 import type { MoneyStatus, TransactionType } from '@/types/finance';
@@ -36,6 +37,7 @@ export default function EditTransactionScreen() {
   const [date, setDate] = useState(transaction?.date ?? new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState(transaction?.notes ?? '');
   const [attachmentName, setAttachmentName] = useState(transaction?.attachmentName ?? '');
+  const [attachmentUri, setAttachmentUri] = useState(transaction?.attachmentUri ?? '');
   const [errors, setErrors] = useState<FormErrors>({});
   const [saved, setSaved] = useState(false);
 
@@ -74,6 +76,7 @@ export default function EditTransactionScreen() {
       date,
       notes,
       attachmentName,
+      attachmentUri,
     });
 
     if (!result.success) {
@@ -100,12 +103,25 @@ export default function EditTransactionScreen() {
       status,
       notes: result.data.notes,
       attachmentName: result.data.attachmentName || undefined,
+      attachmentUri: result.data.attachmentUri || undefined,
     });
 
     setSaved(true);
     setErrors({});
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setTimeout(() => router.back(), 550);
+  }
+
+  async function handlePickAttachment() {
+    const attachment = await pickAttachment();
+
+    if (!attachment) {
+      return;
+    }
+
+    setAttachmentName(attachment.name);
+    setAttachmentUri(attachment.uri);
+    Haptics.selectionAsync();
   }
 
   return (
@@ -182,12 +198,11 @@ export default function EditTransactionScreen() {
             style={styles.notesInput}
           />
 
-          <FormField
-            label="Attachment name"
-            value={attachmentName}
-            onChangeText={setAttachmentName}
-            placeholder="receipt-may.pdf"
-          />
+          <Text style={styles.fieldLabel}>Attachment</Text>
+          <Pressable accessibilityRole="button" onPress={handlePickAttachment} style={styles.attachmentButton}>
+            <Paperclip color={colors.primary} size={18} />
+            <Text style={styles.attachmentText}>{attachmentName || 'Select receipt or invoice file'}</Text>
+          </Pressable>
 
           <PrimaryButton label="Save changes" icon={Check} onPress={handleSave} />
         </Card>
@@ -283,6 +298,22 @@ const styles = StyleSheet.create({
   notesInput: {
     minHeight: 96,
     textAlignVertical: 'top',
+  },
+  attachmentButton: {
+    alignItems: 'center',
+    backgroundColor: colors.primarySoft,
+    borderRadius: 8,
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+    minHeight: 52,
+    paddingHorizontal: spacing.lg,
+  },
+  attachmentText: {
+    color: colors.text,
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '900',
   },
   successIcon: {
     alignItems: 'center',

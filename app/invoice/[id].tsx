@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/Card';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Screen } from '@/components/ui/Screen';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { shareInvoicePdf } from '@/services/invoiceExport';
 import { useSoloFlowStore } from '@/store/appStore';
 import { colors, spacing } from '@/theme/tokens';
 import { formatCurrency } from '@/utils/currency';
@@ -20,9 +21,14 @@ export default function InvoiceDetailScreen() {
   const profile = useSoloFlowStore((state) => state.profile);
   const clients = useSoloFlowStore((state) => state.clients);
   const invoice = useSoloFlowStore((state) => state.invoices.find((item) => item.id === id));
+  const reminders = useSoloFlowStore((state) => state.reminders);
+  const paymentRemindersEnabled = useSoloFlowStore((state) => state.preferences.paymentReminders);
   const markInvoicePaid = useSoloFlowStore((state) => state.markInvoicePaid);
+  const queueInvoiceReminder = useSoloFlowStore((state) => state.queueInvoiceReminder);
   const [reminderStatus, setReminderStatus] = useState('');
+  const [shareStatus, setShareStatus] = useState('');
   const client = clients.find((item) => item.id === invoice?.clientId);
+  const queuedReminder = reminders.find((reminder) => reminder.invoiceId === invoice?.id && reminder.status === 'queued');
 
   if (!invoice) {
     return (
@@ -46,7 +52,28 @@ export default function InvoiceDetailScreen() {
   }
 
   function handleReminder() {
+    if (!invoice) {
+      return;
+    }
+
+    if (!paymentRemindersEnabled) {
+      setReminderStatus('Payment reminders are off in Settings.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      return;
+    }
+
+    queueInvoiceReminder(invoice.id);
     setReminderStatus(`Reminder queued for ${client?.name ?? 'this client'}.`);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
+
+  async function handleSharePdf() {
+    if (!invoice) {
+      return;
+    }
+
+    await shareInvoicePdf({ invoice, client, profile });
+    setShareStatus('Invoice PDF is ready to share.');
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }
 
@@ -91,7 +118,9 @@ export default function InvoiceDetailScreen() {
           Issued {formatShortDate(invoice.issueDate)}. Due {formatShortDate(invoice.dueDate)}.
           {invoice.paidDate ? ` Paid ${formatShortDate(invoice.paidDate)}.` : ' Reminder action is ready.'}
         </Text>
-        {reminderStatus ? <Text style={styles.successText}>{reminderStatus}</Text> : null}
+        {queuedReminder ? <Text style={styles.successText}>Queued {formatShortDate(queuedReminder.queuedAt)} for follow-up.</Text> : null}
+        {reminderStatus && !queuedReminder ? <Text style={styles.successText}>{reminderStatus}</Text> : null}
+        {shareStatus ? <Text style={styles.successText}>{shareStatus}</Text> : null}
       </Card>
 
       <View style={styles.actions}>
@@ -100,16 +129,17 @@ export default function InvoiceDetailScreen() {
           icon={Pencil}
           onPress={() => router.push(`/invoice/edit/${invoice.id}` as Href)}
         />
+        <PrimaryButton label="Share invoice PDF" icon={FileText} onPress={handleSharePdf} />
 
         {invoice.status === 'pending' || invoice.status === 'overdue' ? (
           <>
-          <PrimaryButton label="Mark paid" icon={CheckCircle2} onPress={handleMarkPaid} />
-          <PrimaryButton
-            label={reminderStatus ? 'Reminder queued' : 'Queue reminder'}
-            icon={BellRing}
-            tone="dark"
-            onPress={handleReminder}
-          />
+            <PrimaryButton label="Mark paid" icon={CheckCircle2} onPress={handleMarkPaid} />
+            <PrimaryButton
+              label={queuedReminder || reminderStatus ? 'Reminder queued' : 'Queue reminder'}
+              icon={BellRing}
+              tone="dark"
+              onPress={handleReminder}
+            />
           </>
         ) : null}
       </View>

@@ -52,6 +52,32 @@ function validateCredentials(email: string, password: string) {
   };
 }
 
+function getFriendlyAuthMessage(message?: string) {
+  const normalized = message?.toLowerCase() ?? '';
+
+  if (normalized.includes('invalid login') || normalized.includes('invalid credentials')) {
+    return 'Email or password is not correct.';
+  }
+
+  if (normalized.includes('email not confirmed')) {
+    return 'Check your email and confirm the account before signing in.';
+  }
+
+  if (normalized.includes('already registered') || normalized.includes('already exists')) {
+    return 'This email already has an account. Try signing in instead.';
+  }
+
+  if (normalized.includes('redirect') || normalized.includes('oauth')) {
+    return 'Google sign-in needs the mobile redirect URL added in the auth dashboard.';
+  }
+
+  if (normalized.includes('network') || normalized.includes('fetch')) {
+    return 'Connection failed. Check internet and try again.';
+  }
+
+  return 'Account action could not complete. Please try again.';
+}
+
 export async function signInCloudAccount(email: string, password: string) {
   if (!isSupabaseConfigured || !supabase) {
     return {
@@ -74,7 +100,7 @@ export async function signInCloudAccount(email: string, password: string) {
   if (error) {
     return {
       ok: false,
-      message: error.message,
+      message: getFriendlyAuthMessage(error.message),
     };
   }
 
@@ -106,7 +132,7 @@ export async function createCloudAccount(email: string, password: string) {
   if (error) {
     return {
       ok: false,
-      message: error.message,
+      message: getFriendlyAuthMessage(error.message),
     };
   }
 
@@ -136,7 +162,7 @@ export async function continueWithGoogle() {
   if (error || !data.url) {
     return {
       ok: false,
-      message: error?.message ?? 'Google sign-in could not start.',
+      message: error ? getFriendlyAuthMessage(error.message) : 'Google sign-in could not start.',
     };
   }
 
@@ -160,7 +186,7 @@ export async function continueWithGoogle() {
     if (sessionError) {
       return {
         ok: false,
-        message: sessionError.message,
+        message: getFriendlyAuthMessage(sessionError.message),
       };
     }
 
@@ -179,7 +205,7 @@ export async function continueWithGoogle() {
     if (tokenError) {
       return {
         ok: false,
-        message: tokenError.message,
+        message: getFriendlyAuthMessage(tokenError.message),
       };
     }
 
