@@ -133,7 +133,6 @@ export type InsightSummary = {
 
 export type AppPreferences = {
   paymentReminders: boolean;
-  darkModePreview: boolean;
   autoCloudBackup: boolean;
   lastReportSummary?: string;
   lastCsvReport?: string;

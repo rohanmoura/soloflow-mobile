@@ -11,7 +11,6 @@ import { calculateClientSummaries, calculateDashboard, calculateInsights, syncGo
 
 const defaultPreferences: AppPreferences = {
   paymentReminders: true,
-  darkModePreview: false,
   autoCloudBackup: true,
 };
 
