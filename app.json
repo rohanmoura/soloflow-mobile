@@ -38,6 +38,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "01a82499-5875-4b30-8c0b-a566f2ebb784"
+      }
+    },
+    "owner": "arbitra_pay"
   }
 }
